@@ -1,0 +1,369 @@
+/* NewBooking.css */
+
+.back-link {
+  font-size: 14px;
+  color: #1a73e8;
+  cursor: pointer;
+  margin-bottom: 16px;
+  display: inline-block;
+  font-weight: 500;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+/* Stepper UI */
+.stepper-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 40px;
+  padding: 0 20px;
+}
+
+.step-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  z-index: 2;
+}
+
+.step-icon {
+  width: 48px;
+  height: 48px;
+  background-color: #f1f5f9;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: #94a3b8;
+  border: 2px solid #e2e8f0;
+  transition: all 0.3s ease;
+}
+
+.step-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.step-item.active .step-icon {
+  background-color: #2563eb;
+  border-color: #2563eb;
+  color: white;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+}
+
+.step-item.active .step-label {
+  color: #2563eb;
+  font-weight: 600;
+}
+
+.step-item.completed .step-icon {
+  background-color: #10b981;
+  border-color: #10b981;
+  color: white;
+}
+
+.step-line {
+  flex: 1;
+  height: 2px;
+  background-color: #e2e8f0;
+  margin: 0 16px;
+  position: relative;
+  top: -12px;
+  z-index: 1;
+  transition: background-color 0.3s ease;
+}
+
+.step-line.completed {
+  background-color: #10b981;
+}
+
+/* Wizard Card & Form Styles */
+.wizard-card {
+  background: white;
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+}
+
+.step-content {
+  flex: 1;
+}
+
+.step-title {
+  margin: 0 0 24px 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.input-group.full-width {
+  grid-column: span 2;
+  margin-top: 24px;
+}
+
+.input-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.input-group input, 
+.input-group select, 
+.input-group textarea {
+  padding: 12px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #111827;
+  outline: none;
+  transition: border-color 0.2s;
+  font-family: inherit;
+}
+
+.input-group input:focus, 
+.input-group select:focus, 
+.input-group textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.total-amount-box {
+  margin-top: 24px;
+  padding: 16px;
+  background-color: #f8fafc;
+  border-left: 4px solid #10b981;
+  border-radius: 0 8px 8px 0;
+  font-size: 16px;
+  color: #334155;
+}
+
+.total-amount-box strong {
+  font-size: 20px;
+  color: #111827;
+}
+
+.add-passenger-btn {
+  margin-top: 20px;
+  padding: 10px 16px;
+  background-color: transparent;
+  color: #2563eb;
+  border: 1px dashed #2563eb;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.add-passenger-btn:hover {
+  background-color: #eff6ff;
+}
+
+.file-upload-box {
+  border: 2px dashed #cbd5e1;
+  border-radius: 8px;
+  padding: 40px;
+  text-align: center;
+  background-color: #f8fafc;
+  cursor: pointer;
+}
+
+.uploaded-files-list {
+  margin-top: 16px;
+}
+
+.file-name {
+  color: #10b981;
+  font-size: 14px;
+  margin: 4px 0;
+}
+
+/* Wizard Footer */
+.wizard-footer {
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.btn-secondary {
+  padding: 12px 24px;
+  background-color: white;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: #f1f5f9;
+}
+
+.btn-secondary.hidden {
+  visibility: hidden;
+}
+
+.btn-primary {
+  padding: 12px 32px;
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  background-color: #1d4ed8;
+}
+
+.btn-success {
+  padding: 12px 32px;
+  background-color: #10b981;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-success:hover {
+  background-color: #059669;
+}
+
+.snip-zone {
+  border: 2px dashed #cbd5e1;
+  background: #f8fafc;
+  padding: 40px;
+  text-align: center;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  outline: none;
+}
+
+.snip-zone:focus {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.preview-item img {
+  width: 100%;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+.snip-zone {
+  border: 2px dashed #cbd5e1;
+  background: #f8fafc;
+  padding: 40px;
+  text-align: center;
+  border-radius: 12px;
+  cursor: pointer;
+  outline: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.snip-zone:focus {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.snip-icon {
+  font-size: 32px;
+}
+
+.file-browse-label {
+  color: #2563eb;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.attachment-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.preview-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.preview-thumb {
+  position: relative;
+  height: 100px;
+  background: #f1f5f9;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.remove-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: rgba(239, 68, 68, 0.9);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.file-name-label {
+  font-size: 11px;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
