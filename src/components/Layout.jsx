@@ -1,7 +1,7 @@
 import React from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import './Layout.css' // Sidebar ki CSS yahan move kar do
+import './Layout.css' 
 
 const Layout = ({ children }) => {
   const { logout } = useAuth()
@@ -48,18 +48,26 @@ const Layout = ({ children }) => {
           </button>
         </nav>
 
+        {/* --- YAHAN MAIN CHANGE HAI --- */}
         <div className="sidebar-footer">
+          {/* 1. User Profile Upar */}
           <div className="user-profile">
             <div className="avatar">JD</div>
             <div className="user-info">
               <h4>John Doe</h4>
               <p>Agent</p>
             </div>
-            <button className="logout-btn" onClick={handleLogout} title="Logout">
-              退出 {/* Logout Icon */}
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-            </button>
           </div>
+
+          {/* 2. Logout Button Niche */}
+          <button className="logout-btn-standalone" onClick={handleLogout} title="Logout">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            Logout
+          </button>
         </div>
       </aside>
 

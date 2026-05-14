@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import './Login.css'
 
 const Login = () => {
-  const [role, setRole] = useState('agent') // Default to Agent as per Image 1
+  const [role, setRole] = useState('agent') 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -82,28 +82,25 @@ const Login = () => {
         </div>
 
         <form onSubmit={handleSubmit} className="login-form-modern">
-          {/* Email Input */}
+          
+          {/* Email Input - Icon Removed */}
           <div className="input-group">
             <label>Email Address</label>
             <div className="input-with-icon">
-              <svg className="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
               <input
                 type="email"
-                placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
           </div>
 
-          {/* Password Input */}
+          {/* Password Input - Lock Icon & Placeholder Removed, Eye Icon Kept */}
           <div className="input-group">
             <label>Password</label>
             <div className="input-with-icon password-wrap">
-              <svg className="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
               <input
                 type={showPassword ? 'text' : 'password'}
-                placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
