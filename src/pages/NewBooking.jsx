@@ -1,15 +1,20 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react' // 1. useEffect yahan add kiya
 import { useNavigate } from 'react-router-dom'
 import './NewBooking.css'
+import axios from 'axios';
 
 const NewBooking = () => {
   const navigate = useNavigate()
   const [currentStep, setCurrentStep] = useState(1)
   
+  // 2. States hamesha function ke andar honi chahiye
+  const [flights, setFlights] = useState([]); 
+  const [selectedFlight, setSelectedFlight] = useState(''); 
+
   const [formData, setFormData] = useState({
     firstCharge: '',
     secondCharge: '',
-    airlineName: '',
+    airlineName: '', // Dropdown use karenge par state rakhte hain safe side
     pnr: '',
     cardNumber: '',
     expiry: '',
@@ -25,7 +30,13 @@ const NewBooking = () => {
     attachments: [] 
   })
 
-  // Snipping Tool / Paste Logic
+  // 3. API se flights fetch karna
+  useEffect(() => {
+    axios.get('http://127.0.0.1:8000/api/flights/')
+      .then(res => setFlights(res.data))
+      .catch(err => console.error("Flights fetch error:", err));
+  }, []);
+
   const handlePaste = (e) => {
     const items = e.clipboardData.items;
     for (let i = 0; i < items.length; i++) {
@@ -62,11 +73,30 @@ const NewBooking = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
-  const handleSubmit = () => {
-    console.log("Booking Submitted:", formData)
-    alert("Booking Submitted Successfully!")
-    navigate('/dashboard')
-  }
+  // 4. Submit logic with selected flight
+  const handleSubmit = async () => {
+    if(!selectedFlight) {
+        alert("Pehle flight select karo!");
+        return;
+    }
+
+    const payload = {
+      passenger_name: formData.passengerName,
+      flight: selectedFlight, // Asali ID dropdown se
+      status: 'Confirmed'
+    };
+
+    try {
+      const response = await axios.post('http://127.0.0.1:8000/api/bookings/', payload);
+      if (response.status === 201) {
+        alert("Success! Booking database mein save ho gayi hai.");
+        navigate('/dashboard');
+      }
+    } catch (error) {
+      console.error("Submission Error:", error.response?.data || error.message);
+      alert("Error: Backend se connection nahi ho paya!");
+    }
+  };
 
   const totalAmount = Number(formData.firstCharge || 0) + Number(formData.secondCharge || 0)
 
@@ -93,10 +123,25 @@ const NewBooking = () => {
                 <label>Second Charge</label>
                 <input type="number" name="secondCharge" placeholder="e.g., 200" value={formData.secondCharge} onChange={handleChange} />
               </div>
+              
+              {/* 5. AIRLINE INPUT KI JAGAH DROPDOWN */}
               <div className="input-group">
-                <label>Airline Name</label>
-                <input type="text" name="airlineName" placeholder="e.g., Emirates" value={formData.airlineName} onChange={handleChange} />
+                <label>Select Flight</label>
+                <select 
+                  className="custom-select"
+                  value={selectedFlight} 
+                  onChange={(e) => setSelectedFlight(e.target.value)}
+                  required
+                >
+                  <option value="">-- Choose Flight --</option>
+                  {flights.map(f => (
+                    <option key={f.id} value={f.id}>
+                      {f.flight_number} ({f.origin} to {f.destination})
+                    </option>
+                  ))}
+                </select>
               </div>
+
               <div className="input-group">
                 <label>PNR Number</label>
                 <input type="text" name="pnr" placeholder="6-digit PNR" value={formData.pnr} onChange={handleChange} />
@@ -215,6 +260,7 @@ const NewBooking = () => {
 
   return (
     <div className="crm-layout">
+      {/* Sidebar and rest of your JSX remains same */}
       <aside className="sidebar">
         <div className="sidebar-header">
           <div className="logo-icon-blue">✈</div>
@@ -267,4 +313,4 @@ const NewBooking = () => {
   )
 }
 
-export default NewBooking
+export default NewBooking;
