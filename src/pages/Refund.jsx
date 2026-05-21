@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import axios from 'axios' // AXIOS IMPORT KIYA
 import './Refund.css'
 
 const Refund = () => {
@@ -21,11 +22,33 @@ const Refund = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
-  const handleSubmit = (e) => {
+  // UPDATED HANDLESUBMIT WITH AXIOS POST
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    console.log("Refund Processed:", formData)
-    alert("Refund Request Submitted Successfully!")
-    navigate('/dashboard')
+    
+    // Django ke model ke variable names ke mutabiq payload banaya
+    const payload = {
+      ticket_number: formData.ticketNumber,
+      airline_name: formData.airlineName,
+      pnr_number: formData.pnr,
+      refund_amount: formData.refundAmount,
+      refund_status: formData.refundStatus,
+      refund_method: formData.refundMethod,
+      customer_name: formData.customerName,
+      refund_reason: formData.refundReason,
+      internal_notes: formData.internalNotes || "" // Optional field handling
+    }
+
+    try {
+      const response = await axios.post('http://127.0.0.1:8000/api/refunds/', payload)
+      if (response.status === 201) {
+        alert("Refund Request Submitted Successfully and Saved to Database!")
+        navigate('/dashboard')
+      }
+    } catch (error) {
+      console.error("Refund Submission Error:", error.response?.data || error.message)
+      alert("Error: Backend tak refund request nahi pahonchi!")
+    }
   }
 
   return (
@@ -34,7 +57,7 @@ const Refund = () => {
       <aside className="sidebar">
         <div className="sidebar-header">
           <div className="logo-icon-blue">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" opacity="0"></path><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.2-1.1.7l-1.2 3.6 7.6 3.1-2.9 2.9-3.6-.6-.9.9 2.9 4 4 2.9.9-.9-.6-3.6 2.9-2.9 3.1 7.6 3.6-1.2c.5-.2.8-.6.7-1.1z"></path><line x1="8" y1="21" x2="16" y2="21"></line></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.5 19.5 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" opacity="0"></path><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.2-1.1.7l-1.2 3.6 7.6 3.1-2.9 2.9-3.6-.6-.9.9 2.9 4 4 2.9.9-.9-.6-3.6 2.9-2.9 3.1 7.6 3.6-1.2c.5-.2.8-.6.7-1.1z"></path><line x1="8" y1="21" x2="16" y2="21"></line></svg>
           </div>
           <div className="logo-text">
             <h2>SkyBook CRM</h2>
@@ -67,8 +90,6 @@ const Refund = () => {
 
       {/* MAIN CONTENT */}
       <main className="main-content">
-        
-        {/* Top Header */}
         <div className="back-link" onClick={() => navigate('/dashboard')}>
           &lt; Back to Dashboard
         </div>
@@ -83,10 +104,8 @@ const Refund = () => {
           </div>
         </header>
 
-        {/* Form Card */}
         <div className="form-card">
           <form onSubmit={handleSubmit}>
-            
             <div className="form-grid">
               <div className="input-group">
                 <label>Ticket Number</label>
@@ -157,7 +176,6 @@ const Refund = () => {
               </div>
             </div>
 
-            {/* Refund Policy Alert Box */}
             <div className="policy-alert">
               <strong>Refund Policy:</strong>
               <ul>
@@ -168,7 +186,6 @@ const Refund = () => {
               </ul>
             </div>
 
-            {/* Footer Actions */}
             <div className="form-actions-split">
               <button type="button" className="btn-cancel" onClick={() => navigate('/dashboard')}>
                 Cancel
@@ -181,7 +198,6 @@ const Refund = () => {
             
           </form>
         </div>
-
       </main>
     </div>
   )

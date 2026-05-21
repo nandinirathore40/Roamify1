@@ -1,11 +1,11 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import axios from 'axios' // AXIOS IMPORT KIYA
 import './Exchange.css'
 
 const Exchange = () => {
   const navigate = useNavigate()
 
-  // Updated state based on the new UI design
   const [formData, setFormData] = useState({
     oldTicket: '',
     airlineName: '',
@@ -22,11 +22,33 @@ const Exchange = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
-  const handleSubmit = (e) => {
+  // UPDATED HANDLESUBMIT WITH AXIOS POST
+  const handleSubmit = async (e) => {
     e.preventDefault() // Form reload rokne ke liye
-    console.log("Exchange Submitted:", formData)
-    alert("Exchange Request Processed Successfully!")
-    navigate('/dashboard')
+    
+    // Django ke models ke fields ke hissab se payload taiyar kiya
+    const payload = {
+      old_ticket_number: formData.oldTicket,
+      airline_name: formData.airlineName,
+      pnr_number: formData.pnr,
+      exchange_fee: formData.exchangeFee || 0.00,
+      new_departure_city: formData.newDepartureCity,
+      new_arrival_city: formData.newArrivalCity,
+      new_departure_date: formData.newDepartureDate,
+      new_return_date: formData.newReturnDate || null, // Optional field
+      exchange_reason: formData.exchangeReason
+    }
+
+    try {
+      const response = await axios.post('http://127.0.0.1:8000/api/exchanges/', payload)
+      if (response.status === 201) {
+        alert("Success! Ticket Exchange request database mein save ho gayi.")
+        navigate('/dashboard')
+      }
+    } catch (error) {
+      console.error("Exchange Submission Error:", error.response?.data || error.message)
+      alert("Error: Backend tak request nahi pahonchi!")
+    }
   }
 
   return (
@@ -51,22 +73,16 @@ const Exchange = () => {
 
       {/* MAIN CONTENT */}
       <main className="main-content">
-        
-        {/* Header Section */}
         <header className="page-header exchange-header">
-          <div className="header-icon purple-bg">
-            🔄
-          </div>
+          <div className="header-icon purple-bg">🔄</div>
           <div>
             <h1>Exchange Ticket</h1>
             <p>Process ticket exchange for existing booking</p>
           </div>
         </header>
 
-        {/* Form Area */}
         <div className="form-card">
           <form onSubmit={handleSubmit}>
-            
             {/* Section 1: Old Ticket Details */}
             <div className="form-grid">
               <div className="input-group">
@@ -185,7 +201,6 @@ const Exchange = () => {
             </div>
           </form>
         </div>
-
       </main>
     </div>
   )

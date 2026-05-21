@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import axios from 'axios' // AXIOS IMPORT KIYA
 import './FutureCredit.css'
 
 const FutureCredit = () => {
@@ -20,11 +21,32 @@ const FutureCredit = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
-  const handleSubmit = (e) => {
+  // UPDATED HANDLESUBMIT WITH AXIOS POST
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    console.log("Future Credit Issued:", formData)
-    alert("Future Credit Issued Successfully!")
-    navigate('/dashboard')
+    
+    // Django ke model ke variable names ke mutabiq payload banaya
+    const payload = {
+      original_ticket_number: formData.originalTicket,
+      customer_name: formData.customerName,
+      airline_name: formData.airlineName,
+      credit_amount: formData.creditAmount,
+      issue_date: formData.issueDate,
+      expiry_date: formData.expiryDate,
+      customer_email: formData.customerEmail,
+      notes: formData.notes || "" // Optional field handling
+    }
+
+    try {
+      const response = await axios.post('http://127.0.0.1:8000/api/future-credits/', payload)
+      if (response.status === 201) {
+        alert("Future Credit Issued Successfully and Saved to Database!")
+        navigate('/dashboard')
+      }
+    } catch (error) {
+      console.error("Future Credit Error:", error.response?.data || error.message)
+      alert("Error: Backend tak future credit request nahi pahonchi!")
+    }
   }
 
   return (
@@ -66,8 +88,6 @@ const FutureCredit = () => {
 
       {/* MAIN CONTENT */}
       <main className="main-content">
-        
-        {/* Top Header */}
         <div className="back-link" onClick={() => navigate('/dashboard')}>
           &lt; Back to Dashboard
         </div>
@@ -82,10 +102,8 @@ const FutureCredit = () => {
           </div>
         </header>
 
-        {/* Form Card */}
         <div className="form-card">
           <form onSubmit={handleSubmit}>
-            
             <div className="form-grid">
               <div className="input-group">
                 <label>Original Ticket Number</label>
@@ -134,7 +152,6 @@ const FutureCredit = () => {
               </div>
             </div>
 
-            {/* Information Alert Box */}
             <div className="info-alert">
               <strong>Credit Information:</strong>
               <ul>
@@ -145,7 +162,6 @@ const FutureCredit = () => {
               </ul>
             </div>
 
-            {/* Footer Actions */}
             <div className="form-actions-split">
               <button type="button" className="btn-cancel" onClick={() => navigate('/dashboard')}>
                 Cancel
@@ -155,10 +171,8 @@ const FutureCredit = () => {
                 Issue Credit
               </button>
             </div>
-            
           </form>
         </div>
-
       </main>
     </div>
   )
