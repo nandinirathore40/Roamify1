@@ -1,4 +1,3 @@
-/* Layout.css */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 * {
@@ -11,181 +10,132 @@ body {
   background-color: #f8f9fa;
 }
 
+/* ==========================================
+   ROOT LAYOUT
+   ========================================== */
 .crm-layout {
   display: flex;
   height: 100vh;
+  width: 100vw;
   overflow: hidden;
+  position: relative; /* Overlay ke liye zaroori */
 }
 
-/* ---------------- SIDEBAR ---------------- */
+/* ==========================================
+   MAIN CONTENT (PERFECT CENTERED)
+   ========================================== */
+.main-content {
+  flex: 1;
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;    /* Horizontally center */
+  justify-content: center; /* Vertically center */
+  position: relative;
+  overflow-y: auto;
+  background-color: transparent; 
+  padding: 20px;
+}
+
+/* Menu Toggle Button (Fixed at top-left) */
+.menu-trigger {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 100;
+  background: white;
+  padding: 10px 15px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid #ddd;
+  font-weight: 600;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* ==========================================
+   SIDEBAR & OVERLAY (AMAZON STYLE)
+   ========================================== */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 999;
+  backdrop-filter: blur(2px);
+}
+
 .sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
   width: 260px;
   background-color: #ffffff;
   border-right: 1px solid #e9ecef;
   display: flex;
   flex-direction: column;
-  flex-shrink: 0;
+  z-index: 1000;
+  transition: transform 0.3s ease-in-out;
+  box-shadow: 4px 0 15px rgba(0,0,0,0.1);
 }
 
-.sidebar-header {
-  padding: 24px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  border-bottom: 1px solid #f1f3f5;
+.sidebar.hidden {
+  transform: translateX(-100%);
 }
 
-.logo-icon-blue {
-  width: 40px;
-  height: 40px;
-  background: #1a73e8;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-}
+/* Sidebar Inner Styling */
+.sidebar-header { padding: 24px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #f1f3f5; }
+.logo-icon-blue { width: 40px; height: 40px; background: #1a73e8; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; }
+.logo-icon-blue svg { width: 24px; height: 24px; }
+.logo-text h2 { margin: 0; font-size: 18px; font-weight: 700; color: #111827; }
+.logo-text p { margin: 2px 0 0 0; font-size: 12px; color: #6b7280; }
 
-.logo-icon-blue svg {
-  width: 24px;
-  height: 24px;
-}
+.sidebar-nav { flex: 1; padding: 24px 16px; display: flex; flex-direction: column; gap: 8px; }
+.nav-item { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 16px; background: transparent; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; color: #4b5563; cursor: pointer; text-align: left; transition: all 0.2s; }
+.nav-item svg { width: 20px; height: 20px; color: #6b7280; }
+.nav-item:hover { background-color: #f3f4f6; color: #111827; }
+.nav-item.active { background-color: #eff6ff; color: #1a73e8; font-weight: 600; }
+.nav-item.active svg { color: #1a73e8; }
 
-.logo-text h2 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 700;
-  color: #111827;
-}
+.sidebar-footer { padding: 20px; border-top: 1px solid #f1f3f5; display: flex; flex-direction: column; gap: 16px; }
+.user-profile { display: flex; align-items: center; gap: 12px; }
+.avatar { width: 40px; height: 40px; border-radius: 50%; background: #6b7280; color: white; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; }
+.user-info { flex: 1; }
+.user-info h4 { margin: 0; font-size: 14px; font-weight: 600; color: #111827; }
+.user-info p { margin: 2px 0 0 0; font-size: 12px; color: #6b7280; }
 
-.logo-text p {
-  margin: 2px 0 0 0;
-  font-size: 12px;
-  color: #6b7280;
-}
+.logout-btn-standalone { display: flex; align-items: center; justify-content: flex-start; gap: 12px; width: 100%; padding: 10px 12px; background-color: transparent; border: 1px solid #fee2e2; border-radius: 8px; color: #ef4444; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; }
+.logout-btn-standalone:hover { background-color: #fef2f2; border-color: #fca5a5; }
+.logout-btn-standalone svg { width: 18px; height: 18px; }
 
-.sidebar-nav {
-  flex: 1;
-  padding: 24px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
+/* ==========================================
+   HERO / SEARCH BAR / STATS STYLES
+   ========================================== */
+.collapsed-home { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; gap: 24px; }
+.collapsed-hero-text { text-align: center; color: white; text-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+.collapsed-hero-text h1 { font-size: 42px; font-weight: 800; margin: 0; }
+.collapsed-hero-text p { font-size: 18px; margin: 6px 0 0; opacity: 0.9; }
 
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 12px 16px;
-  background: transparent;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #4b5563;
-  cursor: pointer;
-  text-align: left;
-  transition: all 0.2s;
-}
+/* Trip tabs */
+.trip-type-tabs { display: flex; gap: 8px; }
+.trip-tab { padding: 8px 24px; border-radius: 20px; border: 2px solid white; background: transparent; color: white; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+.trip-tab.active { background: white; color: #1e3a5f; }
 
-.nav-item svg {
-  width: 20px;
-  height: 20px;
-  color: #6b7280;
-}
+/* Search Bar */
+.flight-search-bar { display: flex; align-items: center; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.2); width: 100%; max-width: 900px; }
+.search-field { display: flex; flex-direction: column; padding: 12px 16px; flex: 1; border-right: 1px solid #e2e8f0; min-width: 0; }
+.field-label { font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase; margin-bottom: 4px; }
+.search-field input { border: none; outline: none; font-size: 14px; font-weight: 600; color: #1e293b; background: transparent; width: 100%; }
+.swap-btn { background: none; border: none; font-size: 20px; cursor: pointer; padding: 0 8px; color: #1d4ed8; flex-shrink: 0; }
+.search-btn { background: #1d4ed8; color: white; border: none; padding: 0 28px; height: 100%; min-height: 64px; font-size: 16px; font-weight: 700; cursor: pointer; transition: background 0.2s; flex-shrink: 0; }
+.search-btn:hover { background: #1e40af; }
 
-.nav-item:hover {
-  background-color: #f3f4f6;
-  color: #111827;
-}
-
-.nav-item.active {
-  background-color: #eff6ff;
-  color: #1a73e8;
-  font-weight: 600;
-}
-
-.nav-item.active svg {
-  color: #1a73e8;
-}
-
-/* --- UPDATED SIDEBAR FOOTER & LOGOUT BUTTON --- */
-.sidebar-footer {
-  padding: 20px;
-  border-top: 1px solid #f1f3f5;
-  display: flex;
-  flex-direction: column;
-  gap: 16px; 
-}
-
-.user-profile {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: #6b7280;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.user-info {
-  flex: 1;
-}
-
-.user-info h4 {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: #111827;
-}
-
-.user-info p {
-  margin: 2px 0 0 0;
-  font-size: 12px;
-  color: #6b7280;
-}
-
-.logout-btn-standalone {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start; /* Yahan center ko hata kar flex-start kiya hai */
-  gap: 12px; /* Gap badhaya taaki icon align ho */
-  width: 100%;
-  padding: 10px 12px; /* Padding adjust ki hai alignment ke liye */
-  background-color: transparent;
-  border: 1px solid #fee2e2;
-  border-radius: 8px;
-  color: #ef4444; 
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.logout-btn-standalone:hover {
-  background-color: #fef2f2;
-  border-color: #fca5a5;
-}
-
-.logout-btn-standalone svg {
-  width: 18px;
-  height: 18px;
-}
-
-/* ---------------- MAIN CONTENT ---------------- */
-.main-content {
-  flex: 1;
-  padding: 40px;
-  overflow-y: auto;
-  background-color: #f8fafc;
-}
+/* Stats Row */
+.home-stats-row { display: flex; gap: 16px; }
+.stat-card { background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.3); border-radius: 12px; padding: 16px 28px; display: flex; flex-direction: column; align-items: center; gap: 4px; color: white; }
+.stat-icon { font-size: 24px; }
+.stat-num { font-size: 28px; font-weight: 800; }
+.stat-label { font-size: 12px; opacity: 0.85; }

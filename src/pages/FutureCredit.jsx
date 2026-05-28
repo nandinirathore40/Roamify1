@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import axios from 'axios' // AXIOS IMPORT KIYA
+import { useNavigate, Link } from 'react-router-dom'
+import axios from 'axios'
+import Layout from '../components/Layout' // MASTER LAYOUT IMPORT
+import './Dashboard.css' // Global layout spacing aur glass UI ke liye
 import './FutureCredit.css'
 
 const FutureCredit = () => {
@@ -21,11 +23,9 @@ const FutureCredit = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
-  // UPDATED HANDLESUBMIT WITH AXIOS POST
   const handleSubmit = async (e) => {
     e.preventDefault()
     
-    // Django ke model ke variable names ke mutabiq payload banaya
     const payload = {
       original_ticket_number: formData.originalTicket,
       customer_name: formData.customerName,
@@ -34,7 +34,7 @@ const FutureCredit = () => {
       issue_date: formData.issueDate,
       expiry_date: formData.expiryDate,
       customer_email: formData.customerEmail,
-      notes: formData.notes || "" // Optional field handling
+      notes: formData.notes || ""
     }
 
     try {
@@ -49,112 +49,97 @@ const FutureCredit = () => {
     }
   }
 
-  return (
-    <div className="crm-layout">
-      {/* SIDEBAR */}
-      <aside className="sidebar">
-        <div className="sidebar-header">
-          <div className="logo-icon-blue">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" opacity="0"></path><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.2-1.1.7l-1.2 3.6 7.6 3.1-2.9 2.9-3.6-.6-.9.9 2.9 4 4 2.9.9-.9-.6-3.6 2.9-2.9 3.1 7.6 3.6-1.2c.5-.2.8-.6.7-1.1z"></path><line x1="8" y1="21" x2="16" y2="21"></line></svg>
-          </div>
-          <div className="logo-text">
-            <h2>SkyBook CRM</h2>
-            <p>Travel Management</p>
-          </div>
-        </div>
-        <nav className="sidebar-nav">
-          <button className="nav-item" onClick={() => navigate('/dashboard')}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-            Dashboard
-          </button>
-          <button className="nav-item" onClick={() => navigate('/new-booking')}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.2-1.1.7l-1.2 3.6 7.6 3.1-2.9 2.9-3.6-.6-.9.9 2.9 4 4 2.9.9-.9-.6-3.6 2.9-2.9 3.1 7.6 3.6-1.2c.5-.2.8-.6.7-1.1z"></path></svg>
-            New Booking
-          </button>
-          <button className="nav-item" onClick={() => navigate('/exchange')}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>
-            Exchange
-          </button>
-          <button className="nav-item active">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
-            Future Credit
-          </button>
-          <button className="nav-item" onClick={() => navigate('/refund')}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-            Refund
-          </button>
-        </nav>
-      </aside>
+  // Dashboard wala same Premium Glassmorphism Theme
+  const glassCardStyle = {
+    background: "rgba(255, 255, 255, 0.65)",
+    backdropFilter: "blur(12px)",
+    WebkitBackdropFilter: "blur(12px)",
+    border: "1px solid rgba(255, 255, 255, 0.45)",
+    boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.05)",
+    borderRadius: "16px",
+    padding: "32px"
+  }
 
-      {/* MAIN CONTENT */}
-      <main className="main-content">
-        <div className="back-link" onClick={() => navigate('/dashboard')}>
-          &lt; Back to Dashboard
+  const inputStyle = {
+    width: '100%', padding: '12px 16px', borderRadius: '8px', 
+    border: '1px solid rgba(255,255,255,0.7)', background: 'rgba(255,255,255,0.85)', 
+    color: '#1e293b', fontSize: '14px', outline: 'none'
+  }
+
+  const labelStyle = {
+    display: 'block', marginBottom: '8px', color: '#1e293b', fontSize: '14px', fontWeight: 600
+  }
+
+  return (
+    <Layout>
+      {/* Ye wrapper automatic spacing aur toggle gap handle karega */}
+      <div className="dashboard-bg-container">
+        
+        {/* Navigation */}
+        <div style={{ marginBottom: '20px' }}>
+          <Link to="/dashboard" style={{ color: '#2563eb', textDecoration: 'none', fontWeight: 500, fontSize: '14px' }}>
+            &lt; Back to Dashboard
+          </Link>
         </div>
         
-        <header className="page-header fc-header">
-          <div className="header-icon green-bg">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+        {/* Header Section */}
+        <header className="page-header" style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
+          <div style={{ background: '#10b981', width: '56px', height: '56px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 4px 15px rgba(16, 185, 129, 0.3)' }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
           </div>
           <div>
-            <h1>Future Credit</h1>
-            <p>Issue future travel credit for customer</p>
+            <h1 style={{ fontSize: '32px', color: '#1e293b', margin: '0 0 4px 0', fontWeight: 'bold' }}>Future Credit</h1>
+            <p style={{ color: '#475569', margin: 0, fontSize: '15px' }}>Issue future travel credit for customer</p>
           </div>
         </header>
 
-        <div className="form-card">
+        {/* Form Box wrapped in Glass Card */}
+        <div className="form-container" style={glassCardStyle}>
           <form onSubmit={handleSubmit}>
-            <div className="form-grid">
-              <div className="input-group">
-                <label>Original Ticket Number</label>
-                <input type="text" name="originalTicket" placeholder="e.g., TKT-2024-5678" value={formData.originalTicket} onChange={handleChange} required />
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
+              <div>
+                <label style={labelStyle}>Original Ticket Number</label>
+                <input type="text" name="originalTicket" placeholder="e.g., TKT-2024-5678" value={formData.originalTicket} onChange={handleChange} required style={inputStyle} />
               </div>
-              <div className="input-group">
-                <label>Customer Name</label>
-                <input type="text" name="customerName" placeholder="e.g., John Doe" value={formData.customerName} onChange={handleChange} required />
+              <div>
+                <label style={labelStyle}>Customer Name</label>
+                <input type="text" name="customerName" placeholder="e.g., John Doe" value={formData.customerName} onChange={handleChange} required style={inputStyle} />
               </div>
               
-              <div className="input-group">
-                <label>Airline Name</label>
-                <input type="text" name="airlineName" placeholder="e.g., Qatar Airways" value={formData.airlineName} onChange={handleChange} required />
+              <div>
+                <label style={labelStyle}>Airline Name</label>
+                <input type="text" name="airlineName" placeholder="e.g., Qatar Airways" value={formData.airlineName} onChange={handleChange} required style={inputStyle} />
               </div>
-              <div className="input-group">
-                <label>Credit Amount</label>
-                <div className="input-with-prefix">
-                  <span className="prefix">$</span>
-                  <input type="number" name="creditAmount" placeholder="0.00" value={formData.creditAmount} onChange={handleChange} required />
-                </div>
+              <div>
+                <label style={labelStyle}>Credit Amount</label>
+                <input type="number" name="creditAmount" placeholder="$ 0.00" value={formData.creditAmount} onChange={handleChange} required style={inputStyle} />
               </div>
 
-              <div className="input-group">
-                <label>Issue Date</label>
-                <input type="date" name="issueDate" value={formData.issueDate} onChange={handleChange} required />
+              <div>
+                <label style={labelStyle}>Issue Date</label>
+                <input type="date" name="issueDate" value={formData.issueDate} onChange={handleChange} required style={inputStyle} />
               </div>
-              <div className="input-group">
-                <label>Expiry Date</label>
-                <input type="date" name="expiryDate" value={formData.expiryDate} onChange={handleChange} required />
-              </div>
-
-              <div className="input-group full-width">
-                <label>Customer Email</label>
-                <input type="email" name="customerEmail" placeholder="customer@example.com" value={formData.customerEmail} onChange={handleChange} required />
+              <div>
+                <label style={labelStyle}>Expiry Date</label>
+                <input type="date" name="expiryDate" value={formData.expiryDate} onChange={handleChange} required style={inputStyle} />
               </div>
 
-              <div className="input-group full-width">
-                <label>Notes / Terms & Conditions</label>
-                <textarea 
-                  name="notes" 
-                  rows="4" 
-                  placeholder="Enter any additional notes or terms..." 
-                  value={formData.notes} 
-                  onChange={handleChange}
-                ></textarea>
+              <div style={{ gridColumn: 'span 2' }}>
+                <label style={labelStyle}>Customer Email</label>
+                <input type="email" name="customerEmail" placeholder="customer@example.com" value={formData.customerEmail} onChange={handleChange} required style={inputStyle} />
+              </div>
+
+              <div style={{ gridColumn: 'span 2' }}>
+                <label style={labelStyle}>Notes / Terms & Conditions</label>
+                <textarea name="notes" rows="4" placeholder="Enter any additional notes or terms..." value={formData.notes} onChange={handleChange} style={{ ...inputStyle, resize: 'vertical' }}></textarea>
               </div>
             </div>
 
-            <div className="info-alert">
-              <strong>Credit Information:</strong>
-              <ul>
+            {/* Info Alert Box */}
+            <div style={{ background: 'rgba(16, 185, 129, 0.1)', borderLeft: '4px solid #10b981', padding: '16px 20px', borderRadius: '8px', marginBottom: '32px' }}>
+              <strong style={{ color: '#047857', display: 'block', marginBottom: '8px' }}>Credit Information:</strong>
+              <ul style={{ margin: 0, paddingLeft: '20px', color: '#065f46', fontSize: '14px', lineHeight: '1.6' }}>
                 <li>Credit can be used for future bookings with the same airline</li>
                 <li>Non-transferable to other passengers</li>
                 <li>Must be used before expiry date</li>
@@ -162,19 +147,22 @@ const FutureCredit = () => {
               </ul>
             </div>
 
-            <div className="form-actions-split">
-              <button type="button" className="btn-cancel" onClick={() => navigate('/dashboard')}>
+            {/* Actions */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '16px' }}>
+              <button type="button" onClick={() => navigate('/dashboard')} style={{ background: 'transparent', color: '#475569', border: '1px solid #94a3b8', padding: '12px 24px', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
                 Cancel
               </button>
-              <button type="submit" className="btn-success-solid">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+              <button type="submit" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#10b981', color: 'white', border: 'none', padding: '12px 32px', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', transition: 'background 0.2s' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
                 Issue Credit
               </button>
             </div>
+
           </form>
         </div>
-      </main>
-    </div>
+
+      </div>
+    </Layout>
   )
 }
 
