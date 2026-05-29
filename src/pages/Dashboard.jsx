@@ -1,68 +1,131 @@
-import React from 'react';
-import Layout from '../components/Layout'; 
-import './Dashboard.css';
+import React, { useEffect, useState } from 'react'
+import axios from 'axios'
+import Layout from '../components/Layout'
+import { useAuth } from '../context/AuthContext'
+import './Dashboard.css'
 
 const Dashboard = () => {
-  // Dummy Data for Recent Transactions Table
-  const txData = [
-    { id: 1, pnr: 'X8F92A', name: 'Rahul Sharma', type: 'Booking', status: 'Confirmed' },
-    { id: 2, pnr: 'P2M45K', name: 'Anita Desai', type: 'Refund', status: 'Pending' },
-    { id: 3, pnr: 'L9J88T', name: 'Vikas Singh', type: 'Exchange', status: 'Processing' },
-    { id: 4, pnr: 'Q1W2E3', name: 'Pooja Patel', type: 'Booking', status: 'Failed' },
-    { id: 5, pnr: 'Z5X6C7', name: 'Amit Kumar', type: 'Booking', status: 'Confirmed' },
-  ];
+  const { user } = useAuth()
+
+  const [bookings, setBookings] = useState([])
+  const [exchangesCount, setExchangesCount] = useState(0)
+  const [refundsCount, setRefundsCount] = useState(0)
+  const [creditsCount, setCreditsCount] = useState(0)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const [bookingsRes, exchangesRes, refundsRes, creditsRes] = await Promise.all([
+          axios.get('http://127.0.0.1:8000/api/bookings/'),
+          axios.get('http://127.0.0.1:8000/api/exchanges/'),
+          axios.get('http://127.0.0.1:8000/api/refunds/'),
+          axios.get('http://127.0.0.1:8000/api/future-credits/')
+        ])
+
+        let bookingsData = bookingsRes.data
+        let exchangesData = exchangesRes.data
+        let refundsData = refundsRes.data
+        let creditsData = creditsRes.data
+
+        if (user?.role !== 'manager') {
+          bookingsData = bookingsData.filter(item => Number(item.agent) === Number(user.id))
+          exchangesData = exchangesData.filter(item => Number(item.agent) === Number(user.id))
+          refundsData = refundsData.filter(item => Number(item.agent) === Number(user.id))
+          creditsData = creditsData.filter(item => Number(item.agent) === Number(user.id))
+        }
+
+        setBookings(bookingsData)
+        setExchangesCount(exchangesData.length)
+        setRefundsCount(refundsData.length)
+        setCreditsCount(creditsData.length)
+        setLoading(false)
+      } catch (error) {
+        console.error('Dashboard data fetch error:', error)
+        setLoading(false)
+      }
+    }
+
+    if (user) fetchDashboardData()
+  }, [user])
+
+  const agentSummary = Object.values(
+    bookings.reduce((acc, booking) => {
+      const key = booking.agent_email || booking.agent_name || 'unknown'
+
+      if (!acc[key]) {
+        acc[key] = {
+          agent_name: booking.agent_name || 'Unknown Agent',
+          agent_email: booking.agent_email || 'No Email',
+          agent_role: booking.agent_role || 'Agent',
+          total_bookings: 0,
+          transactions: []
+        }
+      }
+
+      acc[key].total_bookings += 1
+      acc[key].transactions.push(booking)
+
+      return acc
+    }, {})
+  )
 
   return (
     <Layout>
       <div className="dashboard-glass-wrapper">
-        
-        {/* Top Header */}
+
         <div className="dash-header">
-          <h2>Welcome back, Agent!</h2>
-          <p>Here is your daily overview. Let's manage those flights.</p>
+          <h2>
+            Welcome back, {user?.role === 'manager' ? 'Manager' : 'Agent'}!
+          </h2>
+          <p>
+            {user?.role === 'manager'
+              ? 'Full CRM overview with all agent transactions.'
+              : 'Here is your personal CRM activity.'}
+          </p>
         </div>
 
-        {/* 4 KPI CARDS (Glass Effect) */}
         <div className="glass-kpi-grid">
           <div className="glass-card">
             <span className="kpi-icon">📋</span>
             <div>
-              <h3>12</h3>
-              <p>Bookings Today</p>
+              <h3>{loading ? '...' : bookings.length}</h3>
+              <p>Total Bookings</p>
             </div>
           </div>
+
           <div className="glass-card">
             <span className="kpi-icon">🔄</span>
             <div>
-              <h3>3</h3>
+              <h3>{loading ? '...' : exchangesCount}</h3>
               <p>Exchanges</p>
             </div>
           </div>
+
           <div className="glass-card">
             <span className="kpi-icon">💵</span>
             <div>
-              <h3>5</h3>
-              <p>Pending Refunds</p>
+              <h3>{loading ? '...' : refundsCount}</h3>
+              <p>Refunds</p>
             </div>
           </div>
+
           <div className="glass-card">
             <span className="kpi-icon">💳</span>
             <div>
-              <h3>2</h3>
+              <h3>{loading ? '...' : creditsCount}</h3>
               <p>Future Credits</p>
             </div>
           </div>
         </div>
 
-        {/* BOTTOM SPLIT (Table + Alerts) */}
         <div className="glass-main-split">
-          
-          {/* LEFT: RECENT TRANSACTIONS TABLE */}
           <div className="glass-panel table-panel">
             <div className="panel-header">
               <h3>Recent Transactions</h3>
               <button className="glass-btn">View All</button>
             </div>
+
             <table className="glass-table">
               <thead>
                 <tr>
@@ -72,47 +135,116 @@ const Dashboard = () => {
                   <th>Status</th>
                 </tr>
               </thead>
+
               <tbody>
-                {txData.map((tx) => (
-                  <tr key={tx.id}>
-                    <td className="fw-bold">{tx.pnr}</td>
-                    <td>{tx.name}</td>
-                    <td>{tx.type}</td>
-                    <td>
-                      <span className={`status-badge ${tx.status.toLowerCase()}`}>
-                        {tx.status}
-                      </span>
-                    </td>
+                {bookings.length > 0 ? (
+                  bookings.map((b) => (
+                    <tr key={b.id}>
+                      <td className="fw-bold">{b.pnr_number || 'N/A'}</td>
+                      <td>{b.passenger_name}</td>
+                      <td>Booking</td>
+                      <td>
+                        <span className={`status-badge ${b.status?.toLowerCase()}`}>
+                          {b.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="4">No transactions found.</td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
 
-          {/* RIGHT: ALERTS QUEUE */}
           <div className="glass-panel alerts-panel">
             <h3>Action Required</h3>
-            
+
             <div className="glass-alert red-alert">
               <strong>🔴 Payment Timeout</strong>
-              <p>PNR Q1W2E3 pending verification.</p>
+              <p>Pending verification records require review.</p>
             </div>
-            
+
             <div className="glass-alert orange-alert">
               <strong>🟠 Schedule Change</strong>
-              <p>Flight 6E-204 delayed by 2hrs.</p>
+              <p>Check airline schedule updates.</p>
             </div>
 
             <div className="glass-alert blue-alert">
               <strong>🔵 System Update</strong>
-              <p>Indigo API downtime at 2 AM.</p>
+              <p>CRM data synced with backend.</p>
             </div>
           </div>
-
         </div>
+
+        <div className="glass-panel table-panel" style={{ marginTop: '24px' }}>
+          <div className="panel-header">
+            <h3>Agent Credentials & Past Data</h3>
+          </div>
+
+          <table className="glass-table">
+            <thead>
+              <tr>
+                <th>Agent Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Total Bookings</th>
+                <th>Past Transactions</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {agentSummary.length > 0 ? (
+                agentSummary.map((agent, index) => (
+                  <tr key={index}>
+                    <td>{agent.agent_name}</td>
+                    <td>{agent.agent_email}</td>
+                    <td>{agent.agent_role}</td>
+                    <td>{agent.total_bookings}</td>
+                    <td>
+                      <button
+                        className="glass-btn"
+                        onClick={() => {
+                          const transactionDetails = agent.transactions
+                            .map((t, i) => `
+Transaction ${i + 1}
+Passenger: ${t.passenger_name}
+PNR: ${t.pnr_number || 'N/A'}
+Status: ${t.status}
+Date: ${new Date(t.booking_date).toLocaleString()}
+`)
+                            .join('\n----------------------\n')
+
+                          alert(`
+Agent Name: ${agent.agent_name}
+Email: ${agent.agent_email}
+Role: ${agent.agent_role}
+Total Bookings: ${agent.total_bookings}
+
+Past Transactions:
+${transactionDetails}
+                          `)
+                        }}
+                      >
+                        View Past Data
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="5">No agent data found.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
       </div>
     </Layout>
-  );
-};
+  )
+}
 
-export default Dashboard;
+export default Dashboard
