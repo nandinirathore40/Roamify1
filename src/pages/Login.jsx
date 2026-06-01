@@ -86,7 +86,7 @@ const Login = () => {
             </svg>
           </div>
           <h1 style={{ fontSize: '26px', fontWeight: '800', color: '#111827', margin: '0 0 8px 0' }}>Welcome Back</h1>
-          <p style={{ fontSize: '15px', color: '#374151', margin: 0, fontWeight: '500' }}>Sign in to SkyBook CRM</p>
+          <p style={{ fontSize: '15px', color: '#374151', margin: 0, fontWeight: '500' }}>Sign in to Roamify</p>
         </div>
 
         {/* ROLE SECTION */}
