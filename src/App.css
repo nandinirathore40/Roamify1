@@ -182,3 +182,12 @@
     border-right-color: var(--border);
   }
 }
+body, html, #root {
+  background-image: none !important;
+  background-color: #e8eeeb !important;
+}
+body {
+  background-color: #f4f7f9;
+  margin: 0;
+  padding: 0;
+}
