@@ -205,7 +205,7 @@ const Dashboard = () => {
                     <td>{agent.total_bookings}</td>
                     <td>
                       <button
-                        className="glass-btn"
+                        className="table-action-btn"
                         onClick={() => {
                           const transactionDetails = agent.transactions
                             .map((t, i) => `
@@ -228,7 +228,7 @@ ${transactionDetails}
                           `)
                         }}
                       >
-                        View Past Data
+                         View Details
                       </button>
                     </td>
                   </tr>
