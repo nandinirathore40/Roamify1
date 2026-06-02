@@ -1,159 +1,198 @@
-import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import axios from 'axios'
-import Layout from '../components/Layout' // MASTER LAYOUT IMPORT
-import './Dashboard.css' // Global spacing aur layout apply karne ke liye
-import './Exchange.css'
+import React, { useState } from 'react';
+import Layout from '../components/Layout';
+import './Exchange.css'; 
 
 const Exchange = () => {
-  const navigate = useNavigate()
-
-  const [formData, setFormData] = useState({
-    oldTicket: '',
-    airlineName: '',
-    pnr: '',
-    exchangeFee: '',
+  const [exchangeData, setExchangeData] = useState({
     newDepartureCity: '',
     newArrivalCity: '',
     newDepartureDate: '',
     newReturnDate: '',
+    newTicketFare: 0,
+    airlinePenalty: 0,
+    agentServiceFee: 0,
     exchangeReason: ''
-  })
+  });
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value })
-  }
+  const originalFare = 0; 
+  const fareDiff = Math.max(0, exchangeData.newTicketFare - originalFare);
+  const totalToCollect = Number(fareDiff) + Number(exchangeData.airlinePenalty) + Number(exchangeData.agentServiceFee);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault() 
-    
-    const payload = {
-      old_ticket_number: formData.oldTicket,
-      airline_name: formData.airlineName,
-      pnr_number: formData.pnr,
-      exchange_fee: formData.exchangeFee || 0.00,
-      new_departure_city: formData.newDepartureCity,
-      new_arrival_city: formData.newArrivalCity,
-      new_departure_date: formData.newDepartureDate,
-      new_return_date: formData.newReturnDate || null, 
-      exchange_reason: formData.exchangeReason
-    }
-
-    try {
-      const response = await axios.post('http://127.0.0.1:8000/api/exchanges/', payload)
-      if (response.status === 201) {
-        alert("Success! Ticket Exchange request database mein save ho gayi.")
-        navigate('/dashboard')
-      }
-    } catch (error) {
-      console.error("Exchange Submission Error:", error.response?.data || error.message)
-      alert("Error: Backend tak request nahi pahonchi!")
-    }
-  }
-
-  // Dashboard wala same Premium Glassmorphism Theme
-  const glassCardStyle = {
-    background: "rgba(255, 255, 255, 0.65)",
-    backdropFilter: "blur(12px)",
-    WebkitBackdropFilter: "blur(12px)",
-    border: "1px solid rgba(255, 255, 255, 0.45)",
-    boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.05)",
-    borderRadius: "16px",
-    padding: "32px"
-  }
-
-  const inputStyle = {
-    width: '100%', padding: '12px 16px', borderRadius: '8px', 
-    border: '1px solid rgba(255,255,255,0.7)', background: 'rgba(255,255,255,0.85)', 
-    color: '#1e293b', fontSize: '14px', outline: 'none'
-  }
-
-  const labelStyle = {
-    display: 'block', marginBottom: '8px', color: '#1e293b', fontSize: '14px', fontWeight: 600
-  }
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setExchangeData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
 
   return (
     <Layout>
-      {/* Ye class usko Dashboard aur New Booking jaisa gap degi aur toggle trigger support karegi */}
-      <div className="dashboard-bg-container">
+      <div style={{ padding: '32px 40px', backgroundColor: '#f4f7f9', minHeight: '100%', fontFamily: 'sans-serif' }}>
         
-        {/* Header Section */}
-        <header className="page-header" style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
-          <div style={{ background: '#a855f7', width: '56px', height: '56px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 4px 15px rgba(168, 85, 247, 0.3)' }}>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg>
-          </div>
+        {/* TOP HEADER */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
           <div>
-            <h1 style={{ fontSize: '32px', color: '#1e293b', margin: '0 0 4px 0', fontWeight: 'bold' }}>Exchange Ticket</h1>
-            <p style={{ color: '#475569', margin: 0, fontSize: '15px' }}>Process ticket exchange for existing booking</p>
+            <h2 style={{ color: '#0f172a', fontSize: '24px', fontWeight: '800', margin: '0 0 4px 0' }}>Process Exchange</h2>
+            <p style={{ color: '#64748b', fontSize: '14px', margin: 0, fontWeight: '500' }}>Modify flight itineraries and compute dynamic fares</p>
           </div>
-        </header>
-
-        {/* Form Box wrapped in Glass Card */}
-        <div className="form-container" style={glassCardStyle}>
-          <form onSubmit={handleSubmit}>
-            
-            {/* Section 1: Old Ticket Details */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '32px' }}>
-              <div>
-                <label style={labelStyle}>Old Ticket Number</label>
-                <input type="text" name="oldTicket" placeholder="e.g., TKT-2024-1234" value={formData.oldTicket} onChange={handleChange} required style={inputStyle} />
-              </div>
-              <div>
-                <label style={labelStyle}>Airline Name</label>
-                <input type="text" name="airlineName" placeholder="e.g., Emirates" value={formData.airlineName} onChange={handleChange} required style={inputStyle} />
-              </div>
-              <div>
-                <label style={labelStyle}>PNR Number</label>
-                <input type="text" name="pnr" placeholder="6-digit PNR" value={formData.pnr} onChange={handleChange} required style={inputStyle} />
-              </div>
-              <div>
-                <label style={labelStyle}>Exchange Fee</label>
-                <input type="number" name="exchangeFee" placeholder="$ 0.00" value={formData.exchangeFee} onChange={handleChange} style={inputStyle} />
-              </div>
-            </div>
-
-            <hr style={{ border: 'none', borderTop: '1px solid rgba(0,0,0,0.1)', marginBottom: '32px' }} />
-
-            {/* Section 2: New Details */}
-            <h3 style={{ fontSize: '18px', color: '#1e293b', fontWeight: 'bold', marginBottom: '20px' }}>New Flight Details</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '32px' }}>
-              <div>
-                <label style={labelStyle}>New Departure City</label>
-                <input type="text" name="newDepartureCity" placeholder="e.g., New York (JFK)" value={formData.newDepartureCity} onChange={handleChange} required style={inputStyle} />
-              </div>
-              <div>
-                <label style={labelStyle}>New Arrival City</label>
-                <input type="text" name="newArrivalCity" placeholder="e.g., London (LHR)" value={formData.newArrivalCity} onChange={handleChange} required style={inputStyle} />
-              </div>
-              <div>
-                <label style={labelStyle}>New Departure Date</label>
-                <input type="date" name="newDepartureDate" value={formData.newDepartureDate} onChange={handleChange} required style={inputStyle} />
-              </div>
-              <div>
-                <label style={labelStyle}>New Return Date</label>
-                <input type="date" name="newReturnDate" value={formData.newReturnDate} onChange={handleChange} style={inputStyle} />
-              </div>
-            </div>
-
-            {/* Section 3: Reason */}
-            <div style={{ marginBottom: '32px' }}>
-              <label style={labelStyle}>Exchange Reason</label>
-              <textarea name="exchangeReason" rows="3" placeholder="Enter reason for flight exchange..." value={formData.exchangeReason} onChange={handleChange} required style={{ ...inputStyle, resize: 'vertical' }}></textarea>
-            </div>
-
-            {/* Submit Action */}
-            <div style={{ textAlign: 'right' }}>
-              <button type="submit" style={{ background: '#a855f7', color: 'white', border: 'none', padding: '12px 32px', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', transition: 'background 0.2s' }}>
-                Process Exchange
-              </button>
-            </div>
-
-          </form>
         </div>
 
+        {/* MAIN FORM CONTAINER */}
+        <div style={{ background: '#fff', borderRadius: '16px', padding: '32px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '32px' }}>
+          
+          {/* STEP 2 SECTION */}
+          <div>
+            <h3 style={{ fontSize: '15px', color: '#0f172a', fontWeight: '700', margin: '0 0 16px 0' }}>Step 2: New Flight Details</h3>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+              
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>New Departure City</label>
+                <div style={{ background: '#f1f5f9', borderRadius: '10px', border: '1px solid #e2e8f0', cursor: 'text', display: 'flex', alignItems: 'center' }}>
+                  <input 
+                    type="text" 
+                    name="newDepartureCity"
+                    placeholder="e.g., New York (JFK)" 
+                    value={exchangeData.newDepartureCity}
+                    onChange={handleInputChange}
+                    style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', padding: '12px 16px', fontSize: '13px', color: '#334155', fontWeight: '500' }} 
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>New Arrival City</label>
+                <div style={{ background: '#f1f5f9', borderRadius: '10px', border: '1px solid #e2e8f0', cursor: 'text', display: 'flex', alignItems: 'center' }}>
+                  <input 
+                    type="text" 
+                    name="newArrivalCity"
+                    placeholder="e.g., London (LHR)" 
+                    value={exchangeData.newArrivalCity}
+                    onChange={handleInputChange}
+                    style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', padding: '12px 16px', fontSize: '13px', color: '#334155', fontWeight: '500' }} 
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>New Departure Date</label>
+                <div style={{ background: '#f1f5f9', borderRadius: '10px', border: '1px solid #e2e8f0', cursor: 'text', display: 'flex', alignItems: 'center' }}>
+                  <input 
+                    type="date" 
+                    name="newDepartureDate"
+                    value={exchangeData.newDepartureDate}
+                    onChange={handleInputChange}
+                    style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', padding: '12px 16px', fontSize: '13px', color: '#334155', fontWeight: '500', fontFamily: 'sans-serif' }} 
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>New Return Date</label>
+                <div style={{ background: '#f1f5f9', borderRadius: '10px', border: '1px solid #e2e8f0', cursor: 'text', display: 'flex', alignItems: 'center' }}>
+                  <input 
+                    type="date" 
+                    name="newReturnDate"
+                    value={exchangeData.newReturnDate}
+                    onChange={handleInputChange}
+                    style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', padding: '12px 16px', fontSize: '13px', color: '#334155', fontWeight: '500', fontFamily: 'sans-serif' }} 
+                  />
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          {/* STEP 3 SECTION */}
+          <div>
+            <h3 style={{ fontSize: '15px', color: '#0f172a', fontWeight: '700', margin: '0 0 16px 0' }}>Step 3: Exchange Fare & Penalties (₹)</h3>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginBottom: '24px' }}>
+              
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>New Ticket Fare (₹)</label>
+                <div style={{ background: '#f1f5f9', borderRadius: '10px', border: '1px solid #e2e8f0', cursor: 'text', display: 'flex', alignItems: 'center' }}>
+                  <input 
+                    type="number" 
+                    name="newTicketFare"
+                    placeholder="e.g., 5100" 
+                    value={exchangeData.newTicketFare || ''}
+                    onChange={handleInputChange}
+                    style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', padding: '12px 16px', fontSize: '13px', color: '#334155', fontWeight: '500' }} 
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>Airline Penalty Fee (₹)</label>
+                <div style={{ background: '#f1f5f9', borderRadius: '10px', border: '1px solid #e2e8f0', cursor: 'text', display: 'flex', alignItems: 'center' }}>
+                  <input 
+                    type="number" 
+                    name="airlinePenalty"
+                    placeholder="e.g., 350" 
+                    value={exchangeData.airlinePenalty || ''}
+                    onChange={handleInputChange}
+                    style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', padding: '12px 16px', fontSize: '13px', color: '#334155', fontWeight: '500' }} 
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>Agent Service Fee (₹)</label>
+                <div style={{ background: '#f1f5f9', borderRadius: '10px', border: '1px solid #e2e8f0', cursor: 'text', display: 'flex', alignItems: 'center' }}>
+                  <input 
+                    type="number" 
+                    name="agentServiceFee"
+                    placeholder="e.g., 200" 
+                    value={exchangeData.agentServiceFee || ''}
+                    onChange={handleInputChange}
+                    style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', padding: '12px 16px', fontSize: '13px', color: '#334155', fontWeight: '500' }} 
+                  />
+                </div>
+              </div>
+
+            </div>
+
+            {/* REASON TEXTAREA BLOCK */}
+            <div style={{ marginBottom: '32px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>Exchange Reason</label>
+              <div style={{ background: '#f1f5f9', borderRadius: '12px', border: '1px solid #e2e8f0', cursor: 'text' }}>
+                <textarea 
+                  name="exchangeReason"
+                  rows="4" 
+                  placeholder="Enter reason for flight exchange..." 
+                  value={exchangeData.exchangeReason}
+                  onChange={handleInputChange}
+                  style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', padding: '16px', fontSize: '13px', color: '#334155', fontWeight: '500', resize: 'vertical', fontFamily: 'sans-serif' }}
+                />
+              </div>
+            </div>
+
+            {/* BOTTOM SUMMARY FOOTER BANNER */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '20px 24px', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', gap: '24px', fontSize: '12px', fontWeight: '700', color: '#64748b' }}>
+                <span>Original Fare: <strong style={{ color: '#0f172a' }}>₹{originalFare}</strong></span>
+                <span>Fare Diff: <strong style={{ color: '#0f172a' }}>₹{fareDiff}</strong></span>
+                <span>Penalty: <strong style={{ color: '#0f172a' }}>₹{exchangeData.airlinePenalty}</strong></span>
+                <span>Agent Fee: <strong style={{ color: '#0f172a' }}>₹{exchangeData.agentServiceFee}</strong></span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                <div style={{ fontSize: '15px', fontWeight: '700', color: '#0f172a' }}>
+                  Total to Collect: <span style={{ color: '#22c55e', fontSize: '20px', fontWeight: '800', marginLeft: '6px' }}>₹{totalToCollect}</span>
+                </div>
+                <button style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: '10px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.25)' }}>
+                  Process Exchange
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
       </div>
     </Layout>
-  )
-}
+  );
+};
 
-export default Exchange
+export default Exchange;
