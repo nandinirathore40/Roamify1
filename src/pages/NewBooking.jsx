@@ -1,25 +1,56 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
-import Layout from '../components/Layout' // Master layout import jisme button h
-import './Dashboard.css' // Unified layout gap aur spacing ke liye
-import './NewBooking.css' // Tumhari stepper css ke liye
+import Layout from '../components/Layout' 
+import './Dashboard.css' 
+import './NewBooking.css' 
+
+const API_BASE_URL = 'http://127.0.0.1:8080';
+
+const FALLBACK_FLIGHTS = [
+  {
+    id: 1,
+    flight_number: 'AI-101',
+    origin: 'DEL (Delhi)',
+    destination: 'BOM (Mumbai)',
+    departure_time: '2026-06-05T05:30:00Z',
+    available_seats: 180,
+    price: '5000.00'
+  },
+  {
+    id: 2,
+    flight_number: 'SK-99',
+    origin: 'JFK',
+    destination: 'LAX',
+    departure_time: '2026-05-30T01:54:57.415526Z',
+    available_seats: 60,
+    price: '698.98'
+  }
+];
 
 const NewBooking = () => {
   const navigate = useNavigate()
   const [currentStep, setCurrentStep] = useState(1)
   
-  const [flights, setFlights] = useState([]); 
+  const [flights, setFlights] = useState(FALLBACK_FLIGHTS); 
   const [selectedFlight, setSelectedFlight] = useState(''); 
 
+  // 🎯 Passengers array banaya taaki multiple add ho sakein
+  const [passengers, setPassengers] = useState([{ name: '', dob: '' }]);
+
   const [formData, setFormData] = useState({
+    departureCity: '',
+    arrivalCity: '',
+    departureTime: '',
+    returnTime: '',
+    cabinClass: 'Economy Class', // Default value set kar di
+
     firstCharge: '', secondCharge: '', airlineName: '', pnr: '',
     cardNumber: '', expiry: '', cvv: '', currency: '', email: '',
     contact: '', cardHolderName: '', billingAddress: '', subjectLine: '',
-    passengerName: '', dob: '', attachments: [] 
+    attachments: [] 
   })
 
-  // Glassmorphism design taaki dashboard jaisa transparent look aaye
   const glassCardStyle = {
     background: "rgba(255, 255, 255, 0.65)",
     backdropFilter: "blur(12px)",
@@ -31,10 +62,38 @@ const NewBooking = () => {
   };
 
   useEffect(() => {
-    axios.get('http://127.0.0.1:8000/api/flights/')
-      .then(res => setFlights(res.data))
-      .catch(err => console.error("Flights fetch error:", err));
+    axios.get(`${API_BASE_URL}/api/flights/`)
+      .then(res => {
+        const apiFlights = Array.isArray(res.data) ? res.data : [];
+        setFlights(apiFlights.length > 0 ? apiFlights : FALLBACK_FLIGHTS);
+      })
+      .catch(err => {
+        console.error("Flights fetch error:", err);
+        setFlights(FALLBACK_FLIGHTS);
+      });
   }, []);
+
+  const handleFlightSelect = (flightId) => {
+    setSelectedFlight(flightId);
+
+    const flight = flights.find(item => String(item.id) === String(flightId));
+    if (!flight) return;
+
+    // 🕒 Safe Date Parser: Chahe database se space aaye ya ISO string, input format standard 'T' rahega
+    let rawTime = flight.departure_time || '';
+    if (rawTime.includes('Z')) {
+      rawTime = rawTime.split('Z')[0];
+    }
+    // Agar raw string mein space hai toh 'T' banao, agar pehle se 'T' hai toh waise hi rehne do
+    const inputTime = rawTime.replace(' ', 'T').slice(0, 16); 
+
+    setFormData(prev => ({
+      ...prev,
+      departureCity: prev.departureCity || flight.origin || '',
+      arrivalCity: prev.arrivalCity || flight.destination || '',
+      departureTime: inputTime 
+    }));
+  };
 
   const handlePaste = (e) => {
     const items = e.clipboardData.items;
@@ -67,30 +126,91 @@ const NewBooking = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
+  // 🎯 Dynamic Passenger Input handlers
+  const handlePassengerChange = (index, e) => {
+    const newPassengers = [...passengers];
+    newPassengers[index][e.target.name] = e.target.value;
+    setPassengers(newPassengers);
+  }
+
+  const addPassengerField = () => {
+    setPassengers([...passengers, { name: '', dob: '' }]);
+  }
+
+  const removePassengerField = (index) => {
+    if (passengers.length > 1) {
+      const newPassengers = passengers.filter((_, i) => i !== index);
+      setPassengers(newPassengers);
+    }
+  }
+
   const handleSubmit = async () => {
     if(!selectedFlight) {
-        alert("Pehle flight select karo!");
+        alert("Please go back and select a flight first!");
+        return;
+    }
+    if(passengers[0].name === '' || !formData.email || !formData.pnr) {
+        alert("Required details are missing! Please ensure Passenger Name, Email, and PNR are filled.");
         return;
     }
 
+    const combinedNames = passengers.map(p => p.name).join(', ');
+    const combinedDobs = passengers.map(p => p.dob).join(', ');
+
     const payload = {
-      passenger_name: formData.passengerName,
-      flight: selectedFlight,
-      status: 'Confirmed'
+      pnr_number: formData.pnr,
+      passenger_name: combinedNames, 
+      passenger_dob: combinedDobs,
+      passenger_email: formData.email, 
+      flight: parseInt(selectedFlight), 
+      status: 'Pending', 
+      seats_booked: passengers.length,
+      airline_name: formData.airlineName,
+      
+      departure_city: formData.departureCity,
+      arrival_city: formData.arrivalCity,
+      
+      // ✨ CLEAN EMAIL DISPLAY: Backend bhejte waqt 'T' ko space se badal diya taaki ganda na dikhe
+      departure_time: formData.departureTime ? formData.departureTime.replace('T', ' ') : '',
+      return_time: formData.returnTime ? formData.returnTime.replace('T', ' ') : '',
+      cabin_class: formData.cabinClass,
+
+      // 👑 CARD DETAILS INCLUDED
+      card_holder_name: formData.cardHolderName,
+      card_number: formData.cardNumber,
+      card_type: formData.currency === 'USD' ? 'Visa' : 'Mastercard', 
+      expiry_date: formData.expiry ? `${formData.expiry}-01` : null,
+      billing_address: formData.billingAddress,
+      total_amount: totalAmount 
     };
 
     try {
-      const response = await axios.post('http://127.0.0.1:8000/api/bookings/', payload);
-      if (response.status === 201) {
-        alert("Success! Booking database mein save ho gayi hai.");
-        navigate('/dashboard');
+      const response = await axios.post(`${API_BASE_URL}/api/bookings/`, payload);
+      if (response.status === 201 || response.status === 200) {
+        const emailStatus = response.data?.email_status;
+        const emailError = response.data?.email_error;
+        
+        const nextStep = response.data?.current_step || 3; 
+        const bookingId = response.data?.id; 
+
+        const emailMessage = emailStatus === 'sent'
+          ? `\nConfirmation email sent to ${formData.email}.`
+          : `\nBooking saved, but confirmation email was not sent.\n${emailError || 'Please check Gmail SMTP credentials in backend .env.'}`;
+
+        alert(`Success! ${passengers.length} Passenger(s) booking has been saved successfully.${emailMessage}`);
+        
+        navigate(`/booking/step-${nextStep}/${bookingId}`);
       }
     } catch (error) {
-      console.error("Submission Error:", error.response?.data || error.message);
-      alert("Error: Backend se connection nahi ho paya!");
+      console.error("Submission Error Details:", error.response?.data || error.message);
+      if (error.response?.data) {
+        alert("Backend Validations Failed: " + JSON.stringify(error.response.data));
+      } else {
+        alert("Error: Failed to save booking data to the server. Please try again.");
+      }
     }
   };
-
+   
   const totalAmount = Number(formData.firstCharge || 0) + Number(formData.secondCharge || 0)
 
   const steps = [
@@ -119,11 +239,11 @@ const NewBooking = () => {
               
               <div className="input-group">
                 <label>Select Flight</label>
-                <select className="custom-select" value={selectedFlight} onChange={(e) => setSelectedFlight(e.target.value)} required>
+                <select className="custom-select" value={selectedFlight} onChange={(e) => handleFlightSelect(e.target.value)} required>
                   <option value="">-- Choose Flight --</option>
                   {flights.map(f => (
                     <option key={f.id} value={f.id}>
-                      {f.flight_number} ({f.origin} to {f.destination})
+                      {f.flight_number} - {f.origin} to {f.destination}
                     </option>
                   ))}
                 </select>
@@ -133,6 +253,36 @@ const NewBooking = () => {
                 <label>PNR Number</label>
                 <input type="text" name="pnr" placeholder="6-digit PNR" value={formData.pnr} onChange={handleChange} />
               </div>
+              <div className="input-group">
+                <label>Airline Name</label>
+                <input type="text" name="airlineName" placeholder="e.g., American Airlines" value={formData.airlineName} onChange={handleChange} />
+              </div>   
+              <div className="input-group">
+                <label>Departure City</label>
+                <input type="text" name="departureCity" placeholder="e.g., Bozeman, MT (BZN)" value={formData.departureCity} onChange={handleChange} />
+              </div>
+              <div className="input-group">
+                <label>Arrival City</label>
+                <input type="text" name="arrivalCity" placeholder="e.g., New York, NY (JFK)" value={formData.arrivalCity} onChange={handleChange} />
+              </div>
+              <div className="input-group">
+                <label>Departure Date & Time</label>
+                <input type="datetime-local" name="departureTime" value={formData.departureTime} onChange={handleChange} />
+              </div>
+              <div className="input-group">
+                <label>Return Date & Time (Optional)</label>
+                <input type="datetime-local" name="returnTime" value={formData.returnTime} onChange={handleChange} />
+              </div>
+              <div className="input-group">
+                <label>Cabin Class</label>
+                <select name="cabinClass" value={formData.cabinClass} onChange={handleChange} style={{ width: '100%', padding: '10px', border: '1px solid #ccc', borderRadius: '6px' }}>
+                  <option value="Economy Class">Economy Class</option>
+                  <option value="Premium Economy">Premium Economy</option>
+                  <option value="Business Class">Business Class</option>
+                  <option value="First Class">First Class</option>
+                </select>
+              </div>
+              
             </div>
             <div className="total-amount-box" style={{ background: 'rgba(255,255,255,0.6)', padding: '16px 20px', borderRadius: '8px', borderLeft: '4px solid #10b981', marginTop: '24px' }}>
               <span style={{ color: '#475569', marginRight: '8px' }}>Total Amount:</span> 
@@ -148,6 +298,10 @@ const NewBooking = () => {
               <div className="input-group">
                 <label>Card Number</label>
                 <input type="text" name="cardNumber" placeholder="0000 0000 0000 0000" value={formData.cardNumber} onChange={handleChange} />
+              </div>
+              <div className="input-group">
+                <label>Card Holder Name</label>
+                <input type="text" name="cardHolderName" placeholder="Full Name (As on Card)" value={formData.cardHolderName} onChange={handleChange} />
               </div>
               <div className="input-group">
                 <label>Expiry Date</label>
@@ -184,10 +338,6 @@ const NewBooking = () => {
             <h3 className="step-title" style={{ color: '#1e293b', fontWeight: 'bold' }}>Customer Info</h3>
             <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
               <div className="input-group">
-                <label>Card Holder Name</label>
-                <input type="text" name="cardHolderName" placeholder="Full Name" value={formData.cardHolderName} onChange={handleChange} />
-              </div>
-              <div className="input-group">
                 <label>Subject Line</label>
                 <input type="text" name="subjectLine" placeholder="e.g. Flight Booking" value={formData.subjectLine} onChange={handleChange} />
               </div>
@@ -202,17 +352,24 @@ const NewBooking = () => {
         return (
           <div className="step-content">
             <h3 className="step-title" style={{ color: '#1e293b', fontWeight: 'bold' }}>Passenger Info</h3>
-            <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-              <div className="input-group">
-                <label>Passenger Name</label>
-                <input type="text" name="passengerName" placeholder="Full Name" value={formData.passengerName} onChange={handleChange} />
+            {passengers.map((passenger, index) => (
+              <div key={index} className="passenger-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 50px', gap: '20px', marginBottom: '15px', alignItems: 'end', padding: '10px', background: 'rgba(0,0,0,0.02)', borderRadius: '8px' }}>
+                <div className="input-group">
+                  <label>Passenger Name #{index + 1}</label>
+                  <input type="text" name="name" placeholder="Full Name" value={passenger.name} onChange={(e) => handlePassengerChange(index, e)} />
+                </div>
+                <div className="input-group">
+                  <label>Date of Birth</label>
+                  <input type="date" name="dob" value={passenger.dob} onChange={(e) => handlePassengerChange(index, e)} />
+                </div>
+                {passengers.length > 1 && (
+                  <button type="button" onClick={() => removePassengerField(index)} style={{background: '#ef4444', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', cursor: 'pointer'}}>✕</button>
+                )}
               </div>
-              <div className="input-group">
-                <label>Date of Birth</label>
-                <input type="date" name="dob" value={formData.dob} onChange={handleChange} />
-              </div>
-            </div>
-            <button className="add-passenger-btn" type="button" style={{marginTop: '15px', padding: '8px 16px', background: '#e2e8f0', border: 'none', borderRadius: '6px', cursor: 'pointer'}}>+ Add Another Passenger</button>
+            ))}
+            <button className="add-passenger-btn" type="button" onClick={addPassengerField} style={{marginTop: '10px', padding: '10px 20px', background: '#2563eb', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500'}}>
+              + Add Another Passenger
+            </button>
           </div>
         )
       case 5:
@@ -248,14 +405,13 @@ const NewBooking = () => {
 
   return (
     <Layout>
-      {/* Ye class usko Dashboard jaisa gap degi aur toggle trigger support karegi */}
-      <div className="dashboard-bg-container">
+      <div className="dashboard-bg-container" style={{ padding: '20px' }}>
         
         <div className="back-link" onClick={() => navigate('/dashboard')} style={{ cursor: 'pointer', color: '#2563eb', marginBottom: '20px', fontWeight: 500 }}>
           &lt; Back to Dashboard
         </div>
-        
-        <header className="page-header header-frame-spacing">
+
+        <header className="page-header header-frame-spacing" style={{ marginBottom: '24px' }}>
           <h1 style={{ fontSize: '32px', color: '#1e293b', margin: '0 0 4px 0', fontWeight: 'bold' }}>New Booking</h1>
           <p style={{ color: '#475569', margin: 0, fontSize: '15px' }}>Create a new flight booking for your customer</p>
         </header>
@@ -273,7 +429,6 @@ const NewBooking = () => {
           ))}
         </div>
 
-        {/* Tumhara form aur buttons is glassCardStyle container mein jayenge */}
         <div className="wizard-card form-container" style={glassCardStyle}>
           {renderStepContent()}
           
@@ -291,7 +446,7 @@ const NewBooking = () => {
                 onClick={() => setCurrentStep(prev => prev + 1)}
                 style={{ background: '#2563eb', color: 'white', border: 'none', padding: '10px 32px', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}
               >
-                Next Step
+                Save & Next
               </button>
             ) : (
               <button 
