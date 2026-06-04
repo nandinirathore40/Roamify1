@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
-import Layout from '../components/Layout' // MASTER LAYOUT IMPORT
+import Layout from '../components/Layout' 
 import './Dashboard.css'
 
 const Refund = () => {
@@ -18,15 +18,14 @@ const Refund = () => {
     refundReason: ''
   })
 
-  // Saare input fields ko target karne ke liye useRef ka array
   const inputsRef = useRef([])
 
+  // CSS overrides ko direct smash karke layout apply karne ke liye
   useEffect(() => {
-    // Page load hote hi CSS ko bypass karke forced color inject karega
     inputsRef.current.forEach((input) => {
       if (input) {
-        input.style.setProperty('background-color', '#f1f5f9', 'important');
-        input.style.setProperty('border', 'none', 'important');
+        input.style.setProperty('background-color', '#f1f5f9', 'important'); // Exact clean soft gray container block fill
+        input.style.setProperty('border', 'none', 'important'); // Borders flat cleanup
       }
     });
   }, []);
@@ -61,21 +60,21 @@ const Refund = () => {
     }
   }
 
-  // Styles fallback
+  // --- WHITE BASE CONTAINER WITH VISIBLE GREY BLOCKS ---
   const formCardStyle = {
-    background: '#ffffff', 
+    background: '#ffffff', // Clean white paper design base
     borderRadius: '16px',
-    padding: '32px',
-    border: '1px solid #eef2f6',
-    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.01)'
+    padding: '40px',
+    border: '1px solid #f1f5f9',
+    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.02)'
   }
 
   const inputStyle = {
     width: '100%',
     padding: '14px 18px',
-    borderRadius: '12px',
+    borderRadius: '10px',
     border: 'none',
-    backgroundColor: '#f1f5f9', 
+    backgroundColor: '#f1f5f9', // Light gray standard highlight box
     outline: 'none',
     fontSize: '14px',
     fontWeight: '500',
@@ -87,18 +86,18 @@ const Refund = () => {
   const labelStyle = {
     display: 'block',
     fontSize: '14px',
-    fontWeight: '700',
+    fontWeight: '600',
     color: '#475569',
     marginBottom: '8px'
   }
 
   const focusEffect = (e) => {
-    e.target.style.setProperty('background-color', '#e2e8f0', 'important');
-    e.target.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.2)';
+    e.target.style.setProperty('background-color', '#e2e8f0', 'important'); // Deepen grid block on active focus
+    e.target.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.1)';
   }
   
   const blurEffect = (e) => {
-    e.target.style.setProperty('background-color', '#f1f5f9', 'important');
+    e.target.style.setProperty('background-color', '#f1f5f9', 'important'); // Fallback to classic light gray block shape
     e.target.style.boxShadow = 'none';
   }
 
@@ -106,7 +105,7 @@ const Refund = () => {
     <Layout>
       <div style={{ padding: '32px 40px', backgroundColor: '#f8fafc', minHeight: '100vh', fontFamily: 'sans-serif' }}>
         
-        {/* Header Title Section */}
+        {/* Header Title Branding */}
         <header className="page-header" style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
           <div style={{ background: '#3b82f6', width: '56px', height: '56px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 4px 14px rgba(59, 130, 246, 0.2)' }}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -120,7 +119,7 @@ const Refund = () => {
           </div>
         </header>
 
-        {/* White Card Wrapper */}
+        {/* Pure White Container Sheet */}
         <div className="form-container" style={formCardStyle}>
           <form onSubmit={handleSubmit}>
             
@@ -128,11 +127,11 @@ const Refund = () => {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
               <div>
                 <label style={labelStyle}>Ticket Number</label>
-                <input ref={el => inputsRef.current[0] = el} type="text" name="ticketNumber" value={formData.ticketNumber} onChange={handleChange} required style={inputStyle} onFocus={focusEffect} onBlur={blurEffect} />
+                <input ref={el => inputsRef.current[0] = el} type="text" name="ticketNumber" value={formData.ticketNumber} onChange={handleChange} required style={inputStyle} onFocus={focusEffect} onBlur={blurEffect} placeholder="Enter ticket number" />
               </div>
               <div>
                 <label style={labelStyle}>Airline Name</label>
-                <input ref={el => inputsRef.current[1] = el} type="text" name="airlineName" value={formData.airlineName} onChange={handleChange} required style={inputStyle} onFocus={focusEffect} onBlur={blurEffect} />
+                <input ref={el => inputsRef.current[1] = el} type="text" name="airlineName" value={formData.airlineName} onChange={handleChange} required style={inputStyle} onFocus={focusEffect} onBlur={blurEffect} placeholder="Enter airline name" />
               </div>
             </div>
 
@@ -140,11 +139,11 @@ const Refund = () => {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
               <div>
                 <label style={labelStyle}>PNR Number</label>
-                <input ref={el => inputsRef.current[2] = el} type="text" name="pnrNumber" value={formData.pnrNumber} onChange={handleChange} required style={inputStyle} onFocus={focusEffect} onBlur={blurEffect} />
+                <input ref={el => inputsRef.current[2] = el} type="text" name="pnrNumber" value={formData.pnrNumber} onChange={handleChange} required style={inputStyle} onFocus={focusEffect} onBlur={blurEffect} placeholder="Enter 6-digit PNR" />
               </div>
               <div>
                 <label style={labelStyle}>Refund Amount</label>
-                <input ref={el => inputsRef.current[3] = el} type="text" name="refundAmount" value={formData.refundAmount} onChange={handleChange} required style={inputStyle} onFocus={focusEffect} onBlur={blurEffect} />
+                <input ref={el => inputsRef.current[3] = el} type="text" name="refundAmount" value={formData.refundAmount} onChange={handleChange} required style={inputStyle} onFocus={focusEffect} onBlur={blurEffect} placeholder="$ 0.00" />
               </div>
             </div>
 
@@ -173,16 +172,16 @@ const Refund = () => {
             {/* Row 4 */}
             <div style={{ marginBottom: '24px' }}>
               <label style={labelStyle}>Customer Name</label>
-              <input ref={el => inputsRef.current[6] = el} type="text" name="customerName" value={formData.customerName} onChange={handleChange} required style={inputStyle} onFocus={focusEffect} onBlur={blurEffect} />
+              <input ref={el => inputsRef.current[6] = el} type="text" name="customerName" value={formData.customerName} onChange={handleChange} required style={inputStyle} onFocus={focusEffect} onBlur={blurEffect} placeholder="Enter customer name" />
             </div>
 
             {/* Row 5 */}
             <div style={{ marginBottom: '32px' }}>
               <label style={labelStyle}>Refund Reason</label>
-              <textarea ref={el => inputsRef.current[7] = el} name="refundReason" rows="4" value={formData.refundReason} onChange={handleChange} required style={{ ...inputStyle, resize: 'vertical' }} onFocus={focusEffect} onBlur={blurEffect}></textarea>
+              <textarea ref={el => inputsRef.current[7] = el} name="refundReason" rows="4" value={formData.refundReason} onChange={handleChange} required style={{ ...inputStyle, resize: 'vertical' }} onFocus={focusEffect} onBlur={blurEffect} placeholder="Enter description for refund reason..."></textarea>
             </div>
 
-            {/* Process Blue Button */}
+            {/* Submit Action Bar */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #f1f5f9', paddingTop: '24px' }}>
               <button 
                 type="submit" 
@@ -190,7 +189,7 @@ const Refund = () => {
                 onMouseEnter={(e) => e.target.style.background = '#2563eb'}
                 onMouseLeave={(e) => e.target.style.background = '#3b82f6'}
               >
-                Process Refund
+                Process Credit
               </button>
             </div>
 

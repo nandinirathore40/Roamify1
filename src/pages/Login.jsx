@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import './Login.css'
 import wingBg from '../assets/wing1.jpg'
 import API from '../api'
+import aerologo from '../assets/aerologo.jpg'
 
 const Login = () => {
   const [role, setRole] = useState('agent')
@@ -79,19 +80,13 @@ const Login = () => {
         }}
       >
         <div className="login-header">
-          <div className="logo-box">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="logo-svg"
-            >
-              <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.2-1.1.7l-1.2 3.6 7.6 3.1-2.9 2.9-3.6-.6-.9.9 2.9 4 4 2.9.9-.9-.6-3.6 2.9-2.9 3.1 7.6 3.6-1.2c.5-.2.8-.6.7-1.1z"></path>
-            </svg>
-          </div>
+         <div className="logo-box">
+  <img
+    src={aerologo}
+    alt="SkyBook CRM"
+    className="logo-image"
+  />
+</div>
 
           <h1
             style={{
