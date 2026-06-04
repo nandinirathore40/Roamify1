@@ -142,6 +142,11 @@
   font-family: inherit;
 }
 
+.input-group select option {
+  color: #1e293b;
+  background: #ffffff;
+}
+
 .input-group input:focus, 
 .input-group select:focus, 
 .input-group textarea:focus {
