@@ -57,7 +57,7 @@ const Exchange = () => {
                 <input 
                   type="text" 
                   name="oldTicketNumber"
-                  placeholder="xxx-xxxx-xxxx" 
+                  placeholder="e.g., TKT-2024-1234" 
                   value={exchangeData.oldTicketNumber}
                   onChange={handleInputChange}
                   style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', padding: '12px 16px', fontSize: '13px', color: '#334155', fontWeight: '500' }} 
@@ -71,7 +71,7 @@ const Exchange = () => {
                 <input 
                   type="text" 
                   name="airlineName"
-                  placeholder="Enter value" 
+                  placeholder="e.g., Emirates" 
                   value={exchangeData.airlineName}
                   onChange={handleInputChange}
                   style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', padding: '12px 16px', fontSize: '13px', color: '#334155', fontWeight: '500' }} 
@@ -89,7 +89,7 @@ const Exchange = () => {
                   maxLength="6"
                   value={exchangeData.pnrNumber}
                   onChange={handleInputChange}
-                  style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', padding: '12px 16px', fontSize: '13px', color: '#334155', fontWeight: '500',textTransform: 'uppercase' }} 
+                  style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', padding: '12px 16px', fontSize: '13px', color: '#334155', fontWeight: '500', textTransform: 'uppercase' }} 
                 />
               </div>
             </div>
@@ -97,7 +97,7 @@ const Exchange = () => {
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>Exchange Fee</label>
               <div style={{ background: '#f1f5f9', borderRadius: '10px', border: '1px solid #e2e8f0', cursor: 'text', display: 'flex', alignItems: 'center' }}>
-                <span style={{ paddingLeft: '16px', color: '#64748b', fontSize: '13px', fontWeight: '700' }}>$</span>
+                <span style={{ paddingLeft: '16px', color: '#64748b', fontSize: '13px', fontWeight: '700' }}>₹</span>
                 <input 
                   type="number" 
                   name="exchangeFee"
@@ -183,7 +183,7 @@ const Exchange = () => {
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>New Ticket Fare</label>
                 <div style={{ background: '#f1f5f9', borderRadius: '10px', border: '1px solid #e2e8f0', cursor: 'text', display: 'flex', alignItems: 'center' }}>
-                  <span style={{ paddingLeft: '16px', color: '#64748b', fontSize: '13px', fontWeight: '700' }}>$</span>
+                  <span style={{ paddingLeft: '16px', color: '#64748b', fontSize: '13px', fontWeight: '700' }}>₹</span>
                   <input 
                     type="number" 
                     name="newTicketFare"
@@ -198,7 +198,7 @@ const Exchange = () => {
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>Airline Penalty Fee</label>
                 <div style={{ background: '#f1f5f9', borderRadius: '10px', border: '1px solid #e2e8f0', cursor: 'text', display: 'flex', alignItems: 'center' }}>
-                  <span style={{ paddingLeft: '16px', color: '#64748b', fontSize: '13px', fontWeight: '700' }}>$</span>
+                  <span style={{ paddingLeft: '16px', color: '#64748b', fontSize: '13px', fontWeight: '700' }}>₹</span>
                   <input 
                     type="number" 
                     name="airlinePenalty"
@@ -213,7 +213,7 @@ const Exchange = () => {
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>Agent Service Fee</label>
                 <div style={{ background: '#f1f5f9', borderRadius: '10px', border: '1px solid #e2e8f0', cursor: 'text', display: 'flex', alignItems: 'center' }}>
-                  <span style={{ paddingLeft: '16px', color: '#64748b', fontSize: '13px', fontWeight: '700' }}>$</span>
+                  <span style={{ paddingLeft: '16px', color: '#64748b', fontSize: '13px', fontWeight: '700' }}>₹</span>
                   <input 
                     type="number" 
                     name="agentServiceFee"
@@ -245,14 +245,14 @@ const Exchange = () => {
             {/* BOTTOM SUMMARY FOOTER BANNER */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '20px 24px', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
               <div style={{ display: 'flex', gap: '24px', fontSize: '12px', fontWeight: '700', color: '#64748b' }}>
-                <span>Original Fare: <strong style={{ color: '#0f172a' }}>${originalFare}</strong></span>
-                <span>Fare Diff: <strong style={{ color: '#0f172a' }}>${fareDiff}</strong></span>
-                <span>Penalty: <strong style={{ color: '#0f172a' }}>${exchangeData.airlinePenalty || 0}</strong></span>
-                <span>Agent Fee: <strong style={{ color: '#0f172a' }}>${exchangeData.agentServiceFee || 0}</strong></span>
+                <span>Original Fare: <strong style={{ color: '#0f172a' }}>₹{originalFare}</strong></span>
+                <span>Fare Diff: <strong style={{ color: '#0f172a' }}>₹{fareDiff}</strong></span>
+                <span>Penalty: <strong style={{ color: '#0f172a' }}>₹{exchangeData.airlinePenalty || 0}</strong></span>
+                <span>Agent Fee: <strong style={{ color: '#0f172a' }}>₹{exchangeData.agentServiceFee || 0}</strong></span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                 <div style={{ fontSize: '15px', fontWeight: '700', color: '#0f172a' }}>
-                  Total to Collect: <span style={{ color: '#22c55e', fontSize: '20px', fontWeight: '800', marginLeft: '6px' }}>${totalToCollect}</span>
+                  Total to Collect: <span style={{ color: '#22c55e', fontSize: '20px', fontWeight: '800', marginLeft: '6px' }}>₹{totalToCollect}</span>
                 </div>
                 <button style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: '10px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.25)' }}>
                   Process Exchange
