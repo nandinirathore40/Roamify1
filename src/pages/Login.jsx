@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import './Login.css'
 import wingBg from '../assets/wing1.jpg'
+import AeroLogo from '../assets/aerologo.jpg';
 
 const Login = () => {
   const [role, setRole] = useState('agent')
@@ -78,19 +79,28 @@ const Login = () => {
           zIndex: 10
         }}
       >
-        {/* HEADER */}
-        <div className="login-header">
-          <div className="logo-box">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="logo-svg">
-              <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.2-1.1.7l-1.2 3.6 7.6 3.1-2.9 2.9-3.6-.6-.9.9 2.9 4 4 2.9.9-.9-.6-3.6 2.9-2.9 3.1 7.6 3.6-1.2c.5-.2.8-.6.7-1.1z"></path>
-            </svg>
-          </div>
+        {/* HEADER - Updated Logo Section */}
+        <div className="login-header" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '20px' }}>
+          
+          <img 
+            src={AeroLogo} 
+            alt="Roamify Logo" 
+            style={{ 
+              width: '64px', 
+              height: '64px', 
+              borderRadius: '12px', 
+              objectFit: 'cover',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+              marginBottom: '16px'
+            }} 
+          />
+
           <h1 style={{ fontSize: '26px', fontWeight: '800', color: '#111827', margin: '0 0 8px 0' }}>Welcome Back</h1>
           <p style={{ fontSize: '15px', color: '#374151', margin: 0, fontWeight: '500' }}>Sign in to Roamify</p>
         </div>
 
         {/* ROLE SECTION */}
-        <div className="role-section" style={{ marginBottom: '24px', marginTop: '32px' }}>
+        <div className="role-section" style={{ marginBottom: '24px', marginTop: '16px' }}>
           <label className="section-label" style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#111827', marginBottom: '12px' }}>
             Select Role
           </label>
@@ -181,7 +191,6 @@ const Login = () => {
         </form>
       </div>
       
-      {/* TEXT HATA DIYA GAYA HAI */}
     </div>
   )
 }

@@ -4,6 +4,10 @@ import './Exchange.css';
 
 const Exchange = () => {
   const [exchangeData, setExchangeData] = useState({
+    oldTicketNumber: '',
+    airlineName: '',
+    pnrNumber: '',
+    exchangeFee: '',
     newDepartureCity: '',
     newArrivalCity: '',
     newDepartureDate: '',
@@ -16,7 +20,7 @@ const Exchange = () => {
 
   const originalFare = 0; 
   const fareDiff = Math.max(0, exchangeData.newTicketFare - originalFare);
-  const totalToCollect = Number(fareDiff) + Number(exchangeData.airlinePenalty) + Number(exchangeData.agentServiceFee);
+  const totalToCollect = Number(fareDiff) + Number(exchangeData.airlinePenalty) + Number(exchangeData.agentServiceFee) + Number(exchangeData.exchangeFee || 0);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -31,19 +35,85 @@ const Exchange = () => {
       <div style={{ padding: '32px 40px', backgroundColor: '#f4f7f9', minHeight: '100%', fontFamily: 'sans-serif' }}>
         
         {/* TOP HEADER */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
+          <div style={{ width: '48px', height: '48px', background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)', borderRadius: '12px', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', fontSize: '20px', boxShadow: '0 4px 10px rgba(59, 130, 246, 0.25)' }}>
+            🔄
+          </div>
           <div>
-            <h2 style={{ color: '#0f172a', fontSize: '24px', fontWeight: '800', margin: '0 0 4px 0' }}>Process Exchange</h2>
-            <p style={{ color: '#64748b', fontSize: '14px', margin: 0, fontWeight: '500' }}>Modify flight itineraries and compute dynamic fares</p>
+            <h2 style={{ color: '#0f172a', fontSize: '24px', fontWeight: '800', margin: '0 0 4px 0' }}>Exchange Ticket</h2>
+            <p style={{ color: '#64748b', fontSize: '14px', margin: 0, fontWeight: '500' }}>Process ticket exchange for existing booking</p>
           </div>
         </div>
 
         {/* MAIN FORM CONTAINER */}
         <div style={{ background: '#fff', borderRadius: '16px', padding: '32px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '32px' }}>
           
-          {/* STEP 2 SECTION */}
+          {/* TOP 4 FIELDS (Old Ticket, Airline, PNR, Exchange Fee) */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+            
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>Old Ticket Number</label>
+              <div style={{ background: '#f1f5f9', borderRadius: '10px', border: '1px solid #e2e8f0', cursor: 'text', display: 'flex', alignItems: 'center' }}>
+                <input 
+                  type="text" 
+                  name="oldTicketNumber"
+                  placeholder="xxx-xxxx-xxxx" 
+                  value={exchangeData.oldTicketNumber}
+                  onChange={handleInputChange}
+                  style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', padding: '12px 16px', fontSize: '13px', color: '#334155', fontWeight: '500' }} 
+                />
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>Airline Name</label>
+              <div style={{ background: '#f1f5f9', borderRadius: '10px', border: '1px solid #e2e8f0', cursor: 'text', display: 'flex', alignItems: 'center' }}>
+                <input 
+                  type="text" 
+                  name="airlineName"
+                  placeholder="Enter value" 
+                  value={exchangeData.airlineName}
+                  onChange={handleInputChange}
+                  style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', padding: '12px 16px', fontSize: '13px', color: '#334155', fontWeight: '500' }} 
+                />
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>PNR Number</label>
+              <div style={{ background: '#f1f5f9', borderRadius: '10px', border: '1px solid #e2e8f0', cursor: 'text', display: 'flex', alignItems: 'center' }}>
+                <input 
+                  type="text" 
+                  name="pnrNumber"
+                  placeholder="6-digit PNR" 
+                  maxLength="6"
+                  value={exchangeData.pnrNumber}
+                  onChange={handleInputChange}
+                  style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', padding: '12px 16px', fontSize: '13px', color: '#334155', fontWeight: '500',textTransform: 'uppercase' }} 
+                />
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>Exchange Fee</label>
+              <div style={{ background: '#f1f5f9', borderRadius: '10px', border: '1px solid #e2e8f0', cursor: 'text', display: 'flex', alignItems: 'center' }}>
+                <span style={{ paddingLeft: '16px', color: '#64748b', fontSize: '13px', fontWeight: '700' }}>$</span>
+                <input 
+                  type="number" 
+                  name="exchangeFee"
+                  placeholder="0.00" 
+                  value={exchangeData.exchangeFee}
+                  onChange={handleInputChange}
+                  style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', padding: '12px 16px 12px 8px', fontSize: '13px', color: '#334155', fontWeight: '500' }} 
+                />
+              </div>
+            </div>
+
+          </div>
+
+          {/* NEW FLIGHT DETAILS SECTION */}
           <div>
-            <h3 style={{ fontSize: '15px', color: '#0f172a', fontWeight: '700', margin: '0 0 16px 0' }}>Step 2: New Flight Details</h3>
+            <h3 style={{ fontSize: '15px', color: '#0f172a', fontWeight: '700', margin: '0 0 16px 0' }}>New Flight Details</h3>
             
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
               
@@ -53,7 +123,7 @@ const Exchange = () => {
                   <input 
                     type="text" 
                     name="newDepartureCity"
-                    placeholder="e.g., New York (JFK)" 
+                    placeholder="Enter City" 
                     value={exchangeData.newDepartureCity}
                     onChange={handleInputChange}
                     style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', padding: '12px 16px', fontSize: '13px', color: '#334155', fontWeight: '500' }} 
@@ -67,7 +137,7 @@ const Exchange = () => {
                   <input 
                     type="text" 
                     name="newArrivalCity"
-                    placeholder="e.g., London (LHR)" 
+                    placeholder="Enter City" 
                     value={exchangeData.newArrivalCity}
                     onChange={handleInputChange}
                     style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', padding: '12px 16px', fontSize: '13px', color: '#334155', fontWeight: '500' }} 
@@ -104,50 +174,53 @@ const Exchange = () => {
             </div>
           </div>
 
-          {/* STEP 3 SECTION */}
+          {/* BOTTOM SUMMARY & TOTALS */}
           <div>
-            <h3 style={{ fontSize: '15px', color: '#0f172a', fontWeight: '700', margin: '0 0 16px 0' }}>Step 3: Exchange Fare & Penalties (₹)</h3>
+            <h3 style={{ fontSize: '15px', color: '#0f172a', fontWeight: '700', margin: '0 0 16px 0' }}>Exchange Fare & Penalties</h3>
             
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginBottom: '24px' }}>
               
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>New Ticket Fare (₹)</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>New Ticket Fare</label>
                 <div style={{ background: '#f1f5f9', borderRadius: '10px', border: '1px solid #e2e8f0', cursor: 'text', display: 'flex', alignItems: 'center' }}>
+                  <span style={{ paddingLeft: '16px', color: '#64748b', fontSize: '13px', fontWeight: '700' }}>$</span>
                   <input 
                     type="number" 
                     name="newTicketFare"
-                    placeholder="e.g., 5100" 
+                    placeholder="Enter value" 
                     value={exchangeData.newTicketFare || ''}
                     onChange={handleInputChange}
-                    style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', padding: '12px 16px', fontSize: '13px', color: '#334155', fontWeight: '500' }} 
+                    style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', padding: '12px 16px 12px 8px', fontSize: '13px', color: '#334155', fontWeight: '500' }} 
                   />
                 </div>
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>Airline Penalty Fee (₹)</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>Airline Penalty Fee</label>
                 <div style={{ background: '#f1f5f9', borderRadius: '10px', border: '1px solid #e2e8f0', cursor: 'text', display: 'flex', alignItems: 'center' }}>
+                  <span style={{ paddingLeft: '16px', color: '#64748b', fontSize: '13px', fontWeight: '700' }}>$</span>
                   <input 
                     type="number" 
                     name="airlinePenalty"
-                    placeholder="e.g., 350" 
+                    placeholder="Enter value" 
                     value={exchangeData.airlinePenalty || ''}
                     onChange={handleInputChange}
-                    style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', padding: '12px 16px', fontSize: '13px', color: '#334155', fontWeight: '500' }} 
+                    style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', padding: '12px 16px 12px 8px', fontSize: '13px', color: '#334155', fontWeight: '500' }} 
                   />
                 </div>
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>Agent Service Fee (₹)</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>Agent Service Fee</label>
                 <div style={{ background: '#f1f5f9', borderRadius: '10px', border: '1px solid #e2e8f0', cursor: 'text', display: 'flex', alignItems: 'center' }}>
+                  <span style={{ paddingLeft: '16px', color: '#64748b', fontSize: '13px', fontWeight: '700' }}>$</span>
                   <input 
                     type="number" 
                     name="agentServiceFee"
-                    placeholder="e.g., 200" 
+                    placeholder="Enter value" 
                     value={exchangeData.agentServiceFee || ''}
                     onChange={handleInputChange}
-                    style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', padding: '12px 16px', fontSize: '13px', color: '#334155', fontWeight: '500' }} 
+                    style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', padding: '12px 16px 12px 8px', fontSize: '13px', color: '#334155', fontWeight: '500' }} 
                   />
                 </div>
               </div>
@@ -172,14 +245,14 @@ const Exchange = () => {
             {/* BOTTOM SUMMARY FOOTER BANNER */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '20px 24px', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
               <div style={{ display: 'flex', gap: '24px', fontSize: '12px', fontWeight: '700', color: '#64748b' }}>
-                <span>Original Fare: <strong style={{ color: '#0f172a' }}>₹{originalFare}</strong></span>
-                <span>Fare Diff: <strong style={{ color: '#0f172a' }}>₹{fareDiff}</strong></span>
-                <span>Penalty: <strong style={{ color: '#0f172a' }}>₹{exchangeData.airlinePenalty}</strong></span>
-                <span>Agent Fee: <strong style={{ color: '#0f172a' }}>₹{exchangeData.agentServiceFee}</strong></span>
+                <span>Original Fare: <strong style={{ color: '#0f172a' }}>${originalFare}</strong></span>
+                <span>Fare Diff: <strong style={{ color: '#0f172a' }}>${fareDiff}</strong></span>
+                <span>Penalty: <strong style={{ color: '#0f172a' }}>${exchangeData.airlinePenalty || 0}</strong></span>
+                <span>Agent Fee: <strong style={{ color: '#0f172a' }}>${exchangeData.agentServiceFee || 0}</strong></span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                 <div style={{ fontSize: '15px', fontWeight: '700', color: '#0f172a' }}>
-                  Total to Collect: <span style={{ color: '#22c55e', fontSize: '20px', fontWeight: '800', marginLeft: '6px' }}>₹{totalToCollect}</span>
+                  Total to Collect: <span style={{ color: '#22c55e', fontSize: '20px', fontWeight: '800', marginLeft: '6px' }}>${totalToCollect}</span>
                 </div>
                 <button style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: '10px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.25)' }}>
                   Process Exchange

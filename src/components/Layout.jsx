@@ -5,7 +5,7 @@ import './Layout.css';
 import AeroLogo from '../assets/aerologo.jpg';
 
 const Layout = ({ children }) => {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -125,14 +125,20 @@ const Layout = ({ children }) => {
           </nav>
 
           {/* Footer / User Profile */}
+         {/* Footer / User Profile */}
           <div style={{ padding: '24px', borderTop: '1px solid #f1f5f9' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
               <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#e2e8f0', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
-                JD
+                {/* Dynamically first letter of name dikhayega */}
+                {user?.name ? user.name.charAt(0).toUpperCase() : 'JD'}
               </div>
               <div>
-                <h4 style={{ margin: 0, color: '#0f172a', fontSize: '14px' }}>John Doe</h4>
-                <p style={{ margin: 0, color: '#64748b', fontSize: '12px' }}>Admin</p>
+                <h4 style={{ margin: 0, color: '#0f172a', fontSize: '14px' }}>
+                  {user?.name || 'John Doe'}
+                </h4>
+                <p style={{ margin: 0, color: '#64748b', fontSize: '12px', textTransform: 'capitalize' }}>
+                  {user?.role || 'Admin'}
+                </p>
               </div>
             </div>
             <button 
