@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import './Login.css'
 import wingBg from '../assets/wing1.jpg'
+// import API from '../api' // Temporarily disabled backend API call
+import AeroLogo from '../assets/aerologo.jpg'
 
 const Login = () => {
   const [role, setRole] = useState('agent')
@@ -27,20 +29,23 @@ const Login = () => {
 
     setLoading(true)
 
+    // Bypass Backend API because login endpoint doesn't exist yet
     try {
-      const mockUser = {
-        name: role === 'manager' ? 'Admin Manager' : 'Agent User',
-        email,
-        role,
-        token: 'mock-token-123',
-      }
-      login(mockUser)
-      navigate('/dashboard')
+      setTimeout(() => {
+        // Mock user session based on input
+        const mockUser = {
+          name: email.split('@')[0], 
+          email: email,
+          role: role
+        };
+        
+        login(mockUser);
+        navigate('/dashboard');
+      }, 800); // 0.8 seconds loading delay for realism
     } catch (err) {
-      setError('Invalid credentials. Please try again.')
-    } finally {
+      setError('Something went wrong locally')
       setLoading(false)
-    }
+    } 
   }
 
   return (
@@ -50,20 +55,19 @@ const Login = () => {
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
-        height: '100vh', 
-        width: '100vw',  
+        height: '100vh',
+        width: '100vw',
         display: 'flex',
         margin: 0,
         padding: 0,
-        overflow: 'hidden'
+        overflow: 'hidden',
       }}
     >
-      {/* LEFT LOGIN CARD */}
-      <div 
+      <div
         style={{
           width: '100%',
           maxWidth: '460px',
-          height: '100vh', 
+          height: '100vh',
           background: 'rgba(255, 255, 255, 0.08)',
           backdropFilter: 'blur(8px)',
           WebkitBackdropFilter: 'blur(8px)',
@@ -72,25 +76,32 @@ const Login = () => {
           justifyContent: 'center',
           padding: '0 40px',
           margin: 0,
-          borderRadius: 0, 
+          borderRadius: 0,
           borderRight: '1px solid rgba(255, 255, 255, 0.2)',
           boxShadow: '10px 0 30px rgba(0, 0, 0, 0.1)',
-          zIndex: 10
+          zIndex: 10,
         }}
       >
-        {/* HEADER */}
-        <div className="login-header">
-          <div className="logo-box">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="logo-svg">
-              <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.2-1.1.7l-1.2 3.6 7.6 3.1-2.9 2.9-3.6-.6-.9.9 2.9 4 4 2.9.9-.9-.6-3.6 2.9-2.9 3.1 7.6 3.6-1.2c.5-.2.8-.6.7-1.1z"></path>
-            </svg>
-          </div>
+        {/* HEADER - Updated Logo Section */}
+        <div className="login-header" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '20px' }}>
+          <img 
+            src={AeroLogo} 
+            alt="Roamify Logo" 
+            style={{ 
+              width: '64px', 
+              height: '64px', 
+              borderRadius: '12px', 
+              objectFit: 'cover',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+              marginBottom: '16px'
+            }} 
+          />
           <h1 style={{ fontSize: '26px', fontWeight: '800', color: '#111827', margin: '0 0 8px 0' }}>Welcome Back</h1>
-          <p style={{ fontSize: '15px', color: '#374151', margin: 0, fontWeight: '500' }}>Sign in to SkyBook CRM</p>
+          <p style={{ fontSize: '15px', color: '#374151', margin: 0, fontWeight: '500' }}>Sign in to Roamify</p>
         </div>
 
         {/* ROLE SECTION */}
-        <div className="role-section" style={{ marginBottom: '24px', marginTop: '32px' }}>
+        <div className="role-section" style={{ marginBottom: '24px', marginTop: '16px' }}>
           <label className="section-label" style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#111827', marginBottom: '12px' }}>
             Select Role
           </label>
@@ -153,35 +164,33 @@ const Login = () => {
           <div className="input-group">
             <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#111827', marginBottom: '8px' }}>Email Address</label>
             <div className="input-with-icon">
-              <input type="email" placeholder="Enter your email" value={email} onChange={(e) => setEmail(e.target.value)} />
+              <input type="email" placeholder="Enter your email" value={email} onChange={(e) => setEmail(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db' }}/>
             </div>
           </div>
 
-          <div className="input-group">
+          <div className="input-group" style={{ marginTop: '16px' }}>
             <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#111827', marginBottom: '8px' }}>Password</label>
-            <div className="input-with-icon password-wrap">
-              <input type={showPassword ? 'text' : 'password'} placeholder="Enter password" value={password} onChange={(e) => setPassword(e.target.value)} />
-              <button type="button" className="pwd-toggle-btn" onClick={() => setShowPassword(!showPassword)}>👁</button>
+            <div className="input-with-icon password-wrap" style={{ position: 'relative' }}>
+              <input type={showPassword ? 'text' : 'password'} placeholder="Enter password" value={password} onChange={(e) => setPassword(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db', paddingRight: '40px' }}/>
+              <button type="button" className="pwd-toggle-btn" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer' }}>👁</button>
             </div>
           </div>
 
-          <div className="login-actions-row">
-            <label className="remember-checkbox">
+          <div className="login-actions-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', marginBottom: '24px' }}>
+            <label className="remember-checkbox" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: '#374151' }}>
               <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} />
               <span>Remember me</span>
             </label>
-            <a href="#" className="forgot-link">Forgot password?</a>
+            <a href="#" className="forgot-link" style={{ fontSize: '14px', color: '#1a73e8', textDecoration: 'none', fontWeight: '500' }}>Forgot password?</a>
           </div>
 
-          {error && <p className="error-text">{error}</p>}
+          {error && <p className="error-text" style={{ color: '#ef4444', fontSize: '14px', marginBottom: '16px' }}>{error}</p>}
 
-          <button type="submit" className="submit-btn" disabled={loading}>
+          <button type="submit" className="submit-btn" disabled={loading} style={{ width: '100%', padding: '12px', background: '#1a73e8', color: 'white', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: '600', cursor: 'pointer' }}>
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
       </div>
-      
-      {/* TEXT HATA DIYA GAYA HAI */}
     </div>
   )
 }

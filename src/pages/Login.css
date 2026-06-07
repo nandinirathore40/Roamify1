@@ -57,12 +57,8 @@
 }
 
 .logo-box {
-  width: 56px;
-  height: 56px;
-
-  background-color: #1a73e8;
-
-  border-radius: 14px;
+  width: 72px;
+  height: 72px;
 
   display: flex;
   align-items: center;
@@ -70,15 +66,28 @@
 
   margin: 0 auto 20px;
 
-  box-shadow: 0 6px 16px rgba(26, 115, 232, 0.25);
-}
+  border-radius: 20px;
 
+  background: linear-gradient(
+    135deg,
+    #3b82f6,
+    #2563eb
+  );
+
+  box-shadow: 0 12px 25px rgba(37, 99, 235, 0.25);
+}
+.logo-image {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  border-radius: 10px;
+}
 .logo-svg {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
+
   color: white;
 }
-
 /* TEXT COLORS FIXED */
 .login-header h1 {
   font-size: 28px;
@@ -119,6 +128,7 @@
 }
 
 /* ROLE CARDS */
+
 .role-card-btn {
   flex: 1;
 
@@ -151,7 +161,8 @@
 
 .role-card-btn span {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
+  color:  #111827 /* Dark text */
 }
 
 .role-card-btn:hover {
@@ -179,13 +190,29 @@
 
 .input-group label {
   display: block;
+  margin-bottom: 8px;
+
+  color: rgba(255, 255, 255, 0.95);
 
   font-size: 13px;
   font-weight: 600;
 
-  color: white;
+  letter-spacing: 0.3px;
 
-  margin-bottom: 8px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+.section-label {
+  display: block;
+
+  color: rgba(59, 57, 57, 0.95);
+
+  font-size: 13px;
+  font-weight: 600;
+
+  margin-bottom: 12px;
+
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
 }
 
 .input-with-icon {
@@ -215,7 +242,7 @@
 }
 
 .input-with-icon input::placeholder {
-  color: rgba(255, 255, 255, 0.65);
+  color: #111827;
 }
 
 .input-with-icon input:focus {
@@ -410,7 +437,7 @@
   border: 1px solid rgba(255, 255, 255, 0.4); /* Halka safed border */
   border-radius: 10px;
   font-size: 14px;
-  color: #111827;
+  color:  #111827;
   transition: all 0.2s;
   background: rgba(255, 255, 255, 0.3); /* Transparent background */
   backdrop-filter: blur(4px); /* Inputs par chhota sa blur */

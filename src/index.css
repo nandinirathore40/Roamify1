@@ -73,3 +73,7 @@ body {
 @media (max-width: 600px) {
   .form-grid { grid-template-columns: 1fr; }
 }
+body, html, #root {
+  background: #e8eeeb !important;
+  background-image: none !important;
+}

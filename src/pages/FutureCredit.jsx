@@ -1,169 +1,177 @@
-import React, { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
-import axios from 'axios'
-import Layout from '../components/Layout' // MASTER LAYOUT IMPORT
-import './Dashboard.css' // Global layout spacing aur glass UI ke liye
-import './FutureCredit.css'
+import React, { useState } from 'react';
+import Layout from '../components/Layout';
 
 const FutureCredit = () => {
-  const navigate = useNavigate()
-
-  const [formData, setFormData] = useState({
-    originalTicket: '',
-    customerName: '',
-    airlineName: '',
-    creditAmount: '',
-    issueDate: '',
+  const [creditData, setCreditData] = useState({
+    pnrNumber: '',
+    passengerName: '',
+    originalTicketValue: '',
+    cancellationFee: '',
     expiryDate: '',
-    customerEmail: '',
-    notes: ''
-  })
+    remarks: ''
+  });
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value })
-  }
+  // Automatically calculate the net credit amount
+  const ticketVal = Number(creditData.originalTicketValue) || 0;
+  const cancelFee = Number(creditData.cancellationFee) || 0;
+  const netCredit = Math.max(0, ticketVal - cancelFee);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    
-    const payload = {
-      original_ticket_number: formData.originalTicket,
-      customer_name: formData.customerName,
-      airline_name: formData.airlineName,
-      credit_amount: formData.creditAmount,
-      issue_date: formData.issueDate,
-      expiry_date: formData.expiryDate,
-      customer_email: formData.customerEmail,
-      notes: formData.notes || ""
-    }
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setCreditData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
 
-    try {
-      const response = await axios.post('http://127.0.0.1:8000/api/future-credits/', payload)
-      if (response.status === 201) {
-        alert("Future Credit Issued Successfully and Saved to Database!")
-        navigate('/dashboard')
-      }
-    } catch (error) {
-      console.error("Future Credit Error:", error.response?.data || error.message)
-      alert("Error: Backend tak future credit request nahi pahonchi!")
-    }
-  }
-
-  // Dashboard wala same Premium Glassmorphism Theme
-  const glassCardStyle = {
-    background: "rgba(255, 255, 255, 0.65)",
-    backdropFilter: "blur(12px)",
-    WebkitBackdropFilter: "blur(12px)",
-    border: "1px solid rgba(255, 255, 255, 0.45)",
-    boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.05)",
-    borderRadius: "16px",
-    padding: "32px"
-  }
-
-  const inputStyle = {
-    width: '100%', padding: '12px 16px', borderRadius: '8px', 
-    border: '1px solid rgba(255,255,255,0.7)', background: 'rgba(255,255,255,0.85)', 
-    color: '#1e293b', fontSize: '14px', outline: 'none'
-  }
-
-  const labelStyle = {
-    display: 'block', marginBottom: '8px', color: '#1e293b', fontSize: '14px', fontWeight: 600
-  }
+  const handleProcessCredit = () => {
+    alert(`Processing Future Credit of $${netCredit} for PNR: ${creditData.pnrNumber}`);
+    // Yahan backend API call aayegi
+  };
 
   return (
     <Layout>
-      {/* Ye wrapper automatic spacing aur toggle gap handle karega */}
-      <div className="dashboard-bg-container">
+      <div style={{ padding: '32px 40px', backgroundColor: '#f4f7f9', minHeight: '100%', fontFamily: 'sans-serif' }}>
         
-        {/* Navigation */}
-        <div style={{ marginBottom: '20px' }}>
-          <Link to="/dashboard" style={{ color: '#2563eb', textDecoration: 'none', fontWeight: 500, fontSize: '14px' }}>
-            &lt; Back to Dashboard
-          </Link>
-        </div>
-        
-        {/* Header Section */}
-        <header className="page-header" style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
-          <div style={{ background: '#10b981', width: '56px', height: '56px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 4px 15px rgba(16, 185, 129, 0.3)' }}>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+        {/* TOP HEADER */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
+          <div style={{ width: '48px', height: '48px', background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)', borderRadius: '12px', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', fontSize: '20px', boxShadow: '0 4px 10px rgba(59, 130, 246, 0.25)' }}>
+            💳
           </div>
           <div>
-            <h1 style={{ fontSize: '32px', color: '#1e293b', margin: '0 0 4px 0', fontWeight: 'bold' }}>Future Credit</h1>
-            <p style={{ color: '#475569', margin: 0, fontSize: '15px' }}>Issue future travel credit for customer</p>
+            <h2 style={{ color: '#0f172a', fontSize: '24px', fontWeight: '800', margin: '0 0 4px 0' }}>Future Credit</h2>
+            <p style={{ color: '#64748b', fontSize: '14px', margin: 0, fontWeight: '500' }}>Convert cancelled bookings into travel credits for future use</p>
           </div>
-        </header>
+        </div>
 
-        {/* Form Box wrapped in Glass Card */}
-        <div className="form-container" style={glassCardStyle}>
-          <form onSubmit={handleSubmit}>
+        {/* MAIN FORM CONTAINER */}
+        <div style={{ background: '#fff', borderRadius: '16px', padding: '32px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '32px' }}>
+          
+          {/* PASSENGER & BOOKING DETAILS */}
+          <div>
+            <h3 style={{ fontSize: '15px', color: '#0f172a', fontWeight: '700', margin: '0 0 16px 0' }}>Booking Details</h3>
             
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
-              <div>
-                <label style={labelStyle}>Original Ticket Number</label>
-                <input type="text" name="originalTicket" placeholder="e.g., TKT-2024-5678" value={formData.originalTicket} onChange={handleChange} required style={inputStyle} />
-              </div>
-              <div>
-                <label style={labelStyle}>Customer Name</label>
-                <input type="text" name="customerName" placeholder="e.g., John Doe" value={formData.customerName} onChange={handleChange} required style={inputStyle} />
-              </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
               
               <div>
-                <label style={labelStyle}>Airline Name</label>
-                <input type="text" name="airlineName" placeholder="e.g., Qatar Airways" value={formData.airlineName} onChange={handleChange} required style={inputStyle} />
-              </div>
-              <div>
-                <label style={labelStyle}>Credit Amount</label>
-                <input type="number" name="creditAmount" placeholder="$ 0.00" value={formData.creditAmount} onChange={handleChange} required style={inputStyle} />
-              </div>
-
-              <div>
-                <label style={labelStyle}>Issue Date</label>
-                <input type="date" name="issueDate" value={formData.issueDate} onChange={handleChange} required style={inputStyle} />
-              </div>
-              <div>
-                <label style={labelStyle}>Expiry Date</label>
-                <input type="date" name="expiryDate" value={formData.expiryDate} onChange={handleChange} required style={inputStyle} />
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>PNR Number</label>
+                <div style={{ background: '#f1f5f9', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center' }}>
+                  <input 
+                    type="text" 
+                    name="pnrNumber"
+                    placeholder="6-digit PNR"
+                    maxLength="6" 
+                    value={creditData.pnrNumber}
+                    onChange={handleInputChange}
+                    style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', padding: '12px 16px', fontSize: '13px', color: '#334155', fontWeight: '500',textTransform: 'uppercase' }} 
+                  />
+                </div>
               </div>
 
-              <div style={{ gridColumn: 'span 2' }}>
-                <label style={labelStyle}>Customer Email</label>
-                <input type="email" name="customerEmail" placeholder="customer@example.com" value={formData.customerEmail} onChange={handleChange} required style={inputStyle} />
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>Passenger Name</label>
+                <div style={{ background: '#f1f5f9', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center' }}>
+                  <input 
+                    type="text" 
+                    name="passengerName"
+                    placeholder="Enter your name" 
+                    value={creditData.passengerName}
+                    onChange={handleInputChange}
+                    style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', padding: '12px 16px', fontSize: '13px', color: '#334155', fontWeight: '500' }} 
+                  />
+                </div>
               </div>
 
-              <div style={{ gridColumn: 'span 2' }}>
-                <label style={labelStyle}>Notes / Terms & Conditions</label>
-                <textarea name="notes" rows="4" placeholder="Enter any additional notes or terms..." value={formData.notes} onChange={handleChange} style={{ ...inputStyle, resize: 'vertical' }}></textarea>
-              </div>
             </div>
+          </div>
 
-            {/* Info Alert Box */}
-            <div style={{ background: 'rgba(16, 185, 129, 0.1)', borderLeft: '4px solid #10b981', padding: '16px 20px', borderRadius: '8px', marginBottom: '32px' }}>
-              <strong style={{ color: '#047857', display: 'block', marginBottom: '8px' }}>Credit Information:</strong>
-              <ul style={{ margin: 0, paddingLeft: '20px', color: '#065f46', fontSize: '14px', lineHeight: '1.6' }}>
-                <li>Credit can be used for future bookings with the same airline</li>
-                <li>Non-transferable to other passengers</li>
-                <li>Must be used before expiry date</li>
-                <li>Customer will receive confirmation email</li>
-              </ul>
+          {/* FINANCIAL DETAILS */}
+          <div>
+            <h3 style={{ fontSize: '15px', color: '#0f172a', fontWeight: '700', margin: '0 0 16px 0' }}>Financial Calculation</h3>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px' }}>
+              
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>Original Ticket Value</label>
+                <div style={{ background: '#f1f5f9', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center' }}>
+                  <span style={{ paddingLeft: '16px', color: '#64748b', fontSize: '13px', fontWeight: '700' }}>$</span>
+                  <input 
+                    type="number" 
+                    name="originalTicketValue"
+                    placeholder="0.00" 
+                    value={creditData.originalTicketValue}
+                    onChange={handleInputChange}
+                    style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', padding: '12px 16px 12px 8px', fontSize: '13px', color: '#334155', fontWeight: '500' }} 
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>Cancellation Fee</label>
+                <div style={{ background: '#f1f5f9', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center' }}>
+                  <span style={{ paddingLeft: '16px', color: '#64748b', fontSize: '13px', fontWeight: '700' }}>$</span>
+                  <input 
+                    type="number" 
+                    name="cancellationFee"
+                    placeholder="0.00" 
+                    value={creditData.cancellationFee}
+                    onChange={handleInputChange}
+                    style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', padding: '12px 16px 12px 8px', fontSize: '13px', color: '#334155', fontWeight: '500' }} 
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>Credit Expiry Date</label>
+                <div style={{ background: '#f1f5f9', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center' }}>
+                  <input 
+                    type="date" 
+                    name="expiryDate"
+                    value={creditData.expiryDate}
+                    onChange={handleInputChange}
+                    style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', padding: '12px 16px', fontSize: '13px', color: '#334155', fontWeight: '500', fontFamily: 'sans-serif' }} 
+                  />
+                </div>
+              </div>
+
             </div>
+          </div>
 
-            {/* Actions */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '16px' }}>
-              <button type="button" onClick={() => navigate('/dashboard')} style={{ background: 'transparent', color: '#475569', border: '1px solid #94a3b8', padding: '12px 24px', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>
-                Cancel
-              </button>
-              <button type="submit" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#10b981', color: 'white', border: 'none', padding: '12px 32px', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', transition: 'background 0.2s' }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+          {/* REMARKS TEXTAREA */}
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>Remarks / Reason</label>
+            <div style={{ background: '#f1f5f9', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+              <textarea 
+                name="remarks"
+                rows="3" 
+                placeholder="Enter cancellation reason or specific notes..." 
+                value={creditData.remarks}
+                onChange={handleInputChange}
+                style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', padding: '16px', fontSize: '13px', color: '#334155', fontWeight: '500', resize: 'vertical', fontFamily: 'sans-serif' }}
+              />
+            </div>
+          </div>
+
+          {/* BOTTOM SUMMARY FOOTER BANNER */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '20px 24px', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', gap: '24px', fontSize: '12px', fontWeight: '700', color: '#64748b' }}>
+              <span>Ticket Value: <strong style={{ color: '#0f172a' }}>${ticketVal}</strong></span>
+              <span>Cancel Fee: <strong style={{ color: '#ef4444' }}>-${cancelFee}</strong></span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+              <div style={{ fontSize: '15px', fontWeight: '700', color: '#0f172a' }}>
+                Net Credit Amount: <span style={{ color: '#10b981', fontSize: '20px', fontWeight: '800', marginLeft: '6px' }}>${netCredit}</span>
+              </div>
+              <button onClick={handleProcessCredit} style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: '10px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.25)' }}>
                 Issue Credit
               </button>
             </div>
+          </div>
 
-          </form>
         </div>
-
       </div>
     </Layout>
-  )
-}
+  );
+};
 
-export default FutureCredit
+export default FutureCredit;
