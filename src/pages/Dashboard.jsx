@@ -317,34 +317,31 @@ const Dashboard = () => {
     status: 'Confirmed',
   })
 
-  const fetchDashboardData = async () => {
+const fetchDashboardData = async () => {
     try {
-      const [bookingsRes, exchangesRes, refundsRes, creditsRes] = await Promise.all([
-        axios.get('http://127.0.0.1:8000/api/bookings/'),
-        axios.get('http://127.0.0.1:8000/api/exchanges/'),
-        axios.get('http://127.0.0.1:8000/api/refunds/'),
-        axios.get('http://127.0.0.1:8000/api/future-credits/'),
-      ])
+      // 1. Alag-alag API call karenge taaki agar exchanges/refunds fail bhi ho toh bookings chalti rahe
+      const bookingsRes = await axios.get('http://127.0.0.1:8000/api/bookings/').catch(err => {
+        console.error("Bookings fetch failed:", err);
+        return { data: [] };
+      });
+      
+      const exchangesRes = await axios.get('http://127.0.0.1:8000/api/exchanges/').catch(() => ({ data: [] }));
+      const refundsRes = await axios.get('http://127.0.0.1:8000/api/refunds/').catch(() => ({ data: [] }));
+      const creditsRes = await axios.get('http://127.0.0.1:8000/api/future-credits/').catch(() => ({ data: [] }));
 
-      let bookingsData = bookingsRes.data
-      let exchangesData = exchangesRes.data
-      let refundsData = refundsRes.data
-      let creditsData = creditsRes.data
+      let bookingsData = bookingsRes.data || [];
+      let exchangesData = exchangesRes.data || [];
+      let refundsData = refundsRes.data || [];
+      let creditsData = creditsRes.data || [];
 
-      if (user?.role !== 'manager') {
-        bookingsData = bookingsData.filter(item => Number(item.agent) === Number(user.id))
-        exchangesData = exchangesData.filter(item => Number(item.agent) === Number(user.id))
-        refundsData = refundsData.filter(item => Number(item.agent) === Number(user.id))
-        creditsData = creditsData.filter(item => Number(item.agent) === Number(user.id))
-      }
-
+      // 2. Abhi ke liye filter bypass kar rahe hain taaki Agent/Manager dono ko saara data dikhe
       setBookings(bookingsData)
       setExchangesCount(exchangesData.length)
       setRefundsCount(refundsData.length)
       setCreditsCount(creditsData.length)
       setLoading(false)
     } catch (error) {
-      console.error('Dashboard data fetch error:', error)
+      console.error('Dashboard critical error:', error)
       setLoading(false)
     }
   }
@@ -457,15 +454,7 @@ const Dashboard = () => {
     }, {})
   )
 
-  const recentTransactions = bookings.filter((booking) => {
-    if (!booking.booking_date) return false
-
-    const bookingDate = new Date(booking.booking_date)
-    const now = new Date()
-    const diffHours = (now.getTime() - bookingDate.getTime()) / (1000 * 60 * 60)
-
-    return diffHours <= 24
-  })
+const recentTransactions = bookings;
 
   return (
     <Layout>
