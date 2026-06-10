@@ -5,7 +5,7 @@ import Layout from '../components/Layout';
 import './Dashboard.css';
 import './NewBooking.css';
 
-const API_BASE_URL = 'http://127.0.0.1:8080';
+const API_BASE_URL = 'http://127.0.0.1:8000';
 
 const FALLBACK_FLIGHTS = [
   {
@@ -31,12 +31,9 @@ const FALLBACK_FLIGHTS = [
 const NewBooking = () => {
   const navigate = useNavigate();
   
-  // Synchronized state for Stepper navigation
   const [activeStep, setActiveStep] = useState(1);
   const [flights, setFlights] = useState(FALLBACK_FLIGHTS);
   const [selectedFlight, setSelectedFlight] = useState('');
-  
-  // Dynamic Passengers Array from mail branch
   const [passengers, setPassengers] = useState([{ name: '', dob: '' }]);
 
   const [formData, setFormData] = useState({
@@ -163,6 +160,9 @@ const NewBooking = () => {
     const combinedNames = passengers.map(p => p.name).join(', ');
     const combinedDobs = passengers.map(p => p.dob).join(', ');
 
+    // Expiry date format standard keeping string format or fallback string
+    const formattedExpiry = formData.expiry ? formData.expiry : "12/28";
+
     const payload = {
       pnr_number: formData.pnr,
       passenger_name: combinedNames,
@@ -180,9 +180,9 @@ const NewBooking = () => {
       card_holder_name: formData.cardHolderName,
       card_number: formData.cardNumber,
       card_type: formData.currency === 'USD' ? 'Visa' : 'Mastercard',
-      expiry_date: formData.expiry ? `${formData.expiry}-01` : null,
+      expiry_date: formattedExpiry,
       billing_address: formData.billingAddress,
-      total_amount: totalAmount
+      total_amount: String(totalAmount)
     };
 
     try {
@@ -244,7 +244,7 @@ const NewBooking = () => {
           <p style={{ color: '#64748b', fontSize: '15px', margin: 0, fontWeight: '500' }}>Create a new flight booking for your customer</p>
         </div>
 
-        {/* STEPPER (PROGRESS BAR) */}
+        {/* STEPPER */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', position: 'relative' }}>
           <div style={{ position: 'absolute', top: '24px', left: '5%', right: '5%', height: '2px', background: '#e2e8f0', zIndex: 0 }}></div>
           <div style={{ position: 'absolute', top: '24px', left: '5%', width: `${((activeStep - 1) / 4) * 90}%`, height: '2px', background: '#3b82f6', zIndex: 0, transition: 'width 0.3s ease' }}></div>

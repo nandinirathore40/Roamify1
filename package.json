@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
  "scripts": {
-     "dev": "concurrently \"vite\" \"cd ../flight-backend && .\\venv\\Scripts\\activate && python manage.py runserver 8080\"",
+     "dev": "concurrently \"vite\" \"cd ../flight-backend && .\\venv\\Scripts\\activate && python manage.py runserver 8000\"",
      "build": "vite build",
      "lint": "eslint .",
      "preview": "vite preview"
