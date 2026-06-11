@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import './Layout.css'
@@ -8,13 +8,16 @@ const Layout = ({ children }) => {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
 
   const handleLogout = () => {
-    if (window.confirm('Are you sure you want to logout?')) {
-      logout()
-      navigate('/')
-    }
-  }
+  setShowLogoutConfirm(true)
+}
+
+const confirmLogout = () => {
+  logout()
+  navigate('/')
+}
 
   const getInitials = (name) => {
     if (!name) return 'U'
@@ -284,6 +287,41 @@ const Layout = ({ children }) => {
           {children}
         </main>
       </div>
+      {showLogoutConfirm && (
+  <div className="details-modal-overlay">
+    <div className="details-modal">
+      <div className="details-modal-header">
+        <div>
+          <h3>Logout Confirmation</h3>
+          <p>Are you sure you want to logout?</p>
+        </div>
+
+        <button
+          className="details-close-btn"
+          onClick={() => setShowLogoutConfirm(false)}
+        >
+          ✕
+        </button>
+      </div>
+
+      <div className="custom-alert-actions">
+        <button
+          className="custom-alert-cancel"
+          onClick={() => setShowLogoutConfirm(false)}
+        >
+          Cancel
+        </button>
+
+        <button
+          className="custom-alert-confirm"
+          onClick={confirmLogout}
+        >
+          Logout
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     </>
   )
 }

@@ -4,6 +4,7 @@ import axios from 'axios';
 import Layout from '../components/Layout';
 import './Dashboard.css';
 import './NewBooking.css';
+import { useAuth } from '../context/AuthContext';
 
 const API_BASE_URL = 'http://127.0.0.1:8000';
 
@@ -29,7 +30,9 @@ const FALLBACK_FLIGHTS = [
 ];
 
 const NewBooking = () => {
+ 
   const navigate = useNavigate();
+  const { user } = useAuth();
   
   const [activeStep, setActiveStep] = useState(1);
   const [flights, setFlights] = useState(FALLBACK_FLIGHTS);
@@ -57,7 +60,7 @@ const NewBooking = () => {
     subjectLine: '',
     attachments: []
   });
-
+const [customAlert, setCustomAlert] = useState(null)
   const glassCardStyle = {
     background: "rgba(255, 255, 255, 0.65)",
     backdropFilter: "blur(12px)",
@@ -146,14 +149,24 @@ const NewBooking = () => {
       setPassengers(newPassengers);
     }
   };
-
+const showAlert = (title, message, type = 'success', onClose = null) => {
+  setCustomAlert({ title, message, type, onClose })
+}
   const handleSubmit = async () => {
     if (!selectedFlight) {
-      alert("Please go back and select a flight first!");
+      showAlert(
+  "Flight Required",
+  "Please go back and select a flight first.",
+  "error"
+)
       return;
     }
     if (passengers[0].name === '' || !formData.email || !formData.pnr) {
-      alert("Required details are missing! Please ensure Passenger Name, Email, and PNR are filled.");
+      showAlert(
+  "Missing Details",
+  "Required details are missing!",
+  "error"
+)
       return;
     }
 
@@ -164,6 +177,7 @@ const NewBooking = () => {
     const formattedExpiry = formData.expiry ? formData.expiry : "12/28";
 
     const payload = {
+      agent: user?.id,
       pnr_number: formData.pnr,
       passenger_name: combinedNames,
       passenger_dob: combinedDobs,
@@ -197,8 +211,12 @@ const NewBooking = () => {
           ? `\nConfirmation email sent to ${formData.email}.`
           : `\nBooking saved, but confirmation email was not sent.\n${emailError || 'Please check Gmail SMTP credentials.'}`;
 
-        alert(`Success! ${passengers.length} Passenger(s) booking saved successfully.${emailMessage}`);
-        navigate(`/booking/step-${nextStep}/${bookingId}`);
+        showAlert(
+            "Booking Saved Successfully",
+            `Booking saved successfully. Confirmation email sent to ${formData.email}.`,
+            "success",
+            () => navigate('/dashboard')
+          );
       }
     } catch (error) {
       console.error("Submission Error Details:", error.response?.data || error.message);
@@ -486,6 +504,61 @@ const NewBooking = () => {
 
         </div>
       </div>
+      {customAlert && (
+  <div className="details-modal-overlay">
+    <div className="details-modal">
+      <div className="details-modal-header">
+        <div>
+          <h3>{customAlert.title}</h3>
+          <p>
+            {customAlert.type === 'success'
+              ? 'Operation Completed'
+              : 'Attention Required'}
+          </p>
+        </div>
+
+        <button
+          className="details-close-btn"
+          onClick={() => setCustomAlert(null)}
+        >
+          ✕
+        </button>
+      </div>
+
+      <div
+        style={{
+          padding: '20px',
+          color: '#475569',
+          fontSize: '15px',
+          lineHeight: '1.6',
+        }}
+      >
+        {customAlert.message}
+      </div>
+
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+        }}
+      >
+        <button
+          className="confirm-booking-btn"
+          onClick={() => {
+            const closeAction = customAlert.onClose;
+            setCustomAlert(null);
+
+            if (closeAction) {
+              closeAction();
+            }
+          }}
+        >
+          OK
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     </Layout>
   );
 };
