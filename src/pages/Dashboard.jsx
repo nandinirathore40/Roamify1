@@ -317,35 +317,50 @@ const Dashboard = () => {
     status: 'Confirmed',
   })
 
-  const fetchDashboardData = async () => {
+const fetchDashboardData = async () => {
     try {
-      const [bookingsRes, exchangesRes, refundsRes, creditsRes] = await Promise.all([
-        axios.get('http://127.0.0.1:8000/api/bookings/'),
-        axios.get('http://127.0.0.1:8000/api/exchanges/'),
-        axios.get('http://127.0.0.1:8000/api/refunds/'),
-        axios.get('http://127.0.0.1:8000/api/future-credits/'),
-      ])
+      const bookingsRes = await axios.get('http://127.0.0.1:8000/api/bookings/').catch(err => {
+        console.error("Bookings fetch failed:", err);
+        return { data: [] };
+      });
 
-      let bookingsData = bookingsRes.data
-      let exchangesData = exchangesRes.data
-      let refundsData = refundsRes.data
-      let creditsData = creditsRes.data
+      const exchangesRes = await axios.get('http://127.0.0.1:8000/api/exchanges/').catch(() => ({ data: [] }));
+      const refundsRes = await axios.get('http://127.0.0.1:8000/api/refunds/').catch(() => ({ data: [] }));
+      const creditsRes = await axios.get('http://127.0.0.1:8000/api/future-credits/').catch(() => ({ data: [] }));
 
-      if (user?.role !== 'manager') {
-        bookingsData = bookingsData.filter(item => Number(item.agent) === Number(user.id))
-        exchangesData = exchangesData.filter(item => Number(item.agent) === Number(user.id))
-        refundsData = refundsData.filter(item => Number(item.agent) === Number(user.id))
-        creditsData = creditsData.filter(item => Number(item.agent) === Number(user.id))
+      let bookingsData = bookingsRes.data || [];
+      let exchangesData = exchangesRes.data || [];
+      let refundsData = refundsRes.data || [];
+      let creditsData = creditsRes.data || [];
+
+      // Admin / Manager sees all bookings.
+      // Agent sees only bookings created by their own logged-in account.
+      if (user?.role === 'agent') {
+        bookingsData = bookingsData.filter(
+          booking => Number(booking.agent) === Number(user.id)
+        );
+
+        exchangesData = exchangesData.filter(
+          exchange => Number(exchange.agent) === Number(user.id)
+        );
+
+        refundsData = refundsData.filter(
+          refund => Number(refund.agent) === Number(user.id)
+        );
+
+        creditsData = creditsData.filter(
+          credit => Number(credit.agent) === Number(user.id)
+        );
       }
 
-      setBookings(bookingsData)
-      setExchangesCount(exchangesData.length)
-      setRefundsCount(refundsData.length)
-      setCreditsCount(creditsData.length)
-      setLoading(false)
+      setBookings(bookingsData);
+      setExchangesCount(exchangesData.length);
+      setRefundsCount(refundsData.length);
+      setCreditsCount(creditsData.length);
+      setLoading(false);
     } catch (error) {
-      console.error('Dashboard data fetch error:', error)
-      setLoading(false)
+      console.error('Dashboard critical error:', error);
+      setLoading(false);
     }
   }
 
@@ -446,26 +461,35 @@ const Dashboard = () => {
           agent_email: booking.agent_email || 'No Email',
           agent_role: booking.agent_role || 'Agent',
           total_bookings: 0,
+          authorized_bookings: 0,
+          unauthorized_bookings: 0,
           transactions: [],
         }
       }
 
       acc[key].total_bookings += 1
+
+      if (booking.is_authorized) {
+        acc[key].authorized_bookings += 1
+      } else {
+        acc[key].unauthorized_bookings += 1
+      }
+
       acc[key].transactions.push(booking)
 
-      return acc
-    }, {})
-  )
+            return acc
+          }, {})
+        )
 
-  const recentTransactions = bookings.filter((booking) => {
-    if (!booking.booking_date) return false
+const recentTransactions = bookings.filter((booking) => {
+  if (!booking.booking_date) return false;
 
-    const bookingDate = new Date(booking.booking_date)
-    const now = new Date()
-    const diffHours = (now.getTime() - bookingDate.getTime()) / (1000 * 60 * 60)
+  const bookingTime = new Date(booking.booking_date).getTime();
+  const now = new Date().getTime();
+  const last24Hours = now - 24 * 60 * 60 * 1000;
 
-    return diffHours <= 24
-  })
+  return bookingTime >= last24Hours && bookingTime <= now;
+});
 
   return (
     <Layout>
@@ -574,6 +598,7 @@ const Dashboard = () => {
                         <th style={{ padding: '12px 16px' }}>SR No.</th>
                         <th style={{ padding: '12px 16px' }}>Agent Name</th>
                         <th style={{ padding: '12px 16px' }}>Email</th>
+                        <th style={{ padding: '12px 16px' }}>Authorization</th>
                         <th style={{ padding: '12px 16px' }}>Role</th>
                         <th style={{ padding: '12px 16px' }}>Total Bookings</th>
                         <th style={{ padding: '12px 16px' }}>Past Transactions</th>
@@ -584,6 +609,7 @@ const Dashboard = () => {
                         <th style={{ padding: '12px 16px' }}>Customer Name</th>
                         <th style={{ padding: '12px 16px' }}>PNR</th>
                         <th style={{ padding: '12px 16px' }}>Email</th>
+                        <th style={{ padding: '12px 16px' }}>Authorization</th>
                         <th style={{ padding: '12px 16px' }}>Status</th>
                         <th style={{ padding: '12px 16px' }}>Action</th>
                       </tr>
@@ -598,7 +624,40 @@ const Dashboard = () => {
                             <td style={{ padding: '16px', color: '#334155', fontSize: '13px' }}>{index + 1}</td>
                             <td style={{ padding: '16px', color: '#334155', fontWeight: '600', fontSize: '13px' }}>{agent.agent_name}</td>
                             <td style={{ padding: '16px', color: '#64748b', fontSize: '13px' }}>{agent.agent_email}</td>
-                            <td style={{ padding: '16px', color: '#64748b', fontSize: '13px' }}>{agent.agent_role}</td>
+
+<td style={{ padding: '16px' }}>
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+    <span
+      style={{
+        padding: '6px 12px',
+        borderRadius: '20px',
+        fontSize: '11px',
+        fontWeight: '700',
+        background: '#dcfce7',
+        color: '#166534',
+        width: 'fit-content',
+      }}
+    >
+      Authorized: {agent.authorized_bookings}
+    </span>
+
+    <span
+      style={{
+        padding: '6px 12px',
+        borderRadius: '20px',
+        fontSize: '11px',
+        fontWeight: '700',
+        background: '#fee2e2',
+        color: '#991b1b',
+        width: 'fit-content',
+      }}
+    >
+      Not Authorized: {agent.unauthorized_bookings}
+    </span>
+  </div>
+</td>
+
+<td style={{ padding: '16px', color: '#64748b', fontSize: '13px' }}>{agent.agent_role}</td>
                             <td style={{ padding: '16px', color: '#334155', fontWeight: '700', fontSize: '13px' }}>{agent.total_bookings}</td>
                             <td style={{ padding: '16px' }}>
                               <button
@@ -612,7 +671,7 @@ const Dashboard = () => {
                         ))
                       ) : (
                         <tr>
-                          <td colSpan="6" style={{ padding: '20px', color: '#64748b' }}>
+                          <td colSpan="7" style={{ padding: '20px', color: '#64748b' }}>
                             No agent data found.
                           </td>
                         </tr>
@@ -624,8 +683,56 @@ const Dashboard = () => {
                             <td style={{ padding: '16px', color: '#334155', fontSize: '13px' }}>{index + 1}</td>
                             <td style={{ padding: '16px', color: '#334155', fontWeight: '600', fontSize: '13px' }}>{b.passenger_name}</td>
                             <td style={{ padding: '16px', color: '#3b82f6', fontWeight: '700', fontSize: '13px' }}>{b.pnr_number || 'N/A'}</td>
-                            <td style={{ padding: '16px', color: '#64748b', fontSize: '13px' }}>{b.passenger_email || 'Not Provided'}</td>
-                            <td style={{ padding: '16px' }}>
+                            <td style={{ padding: '16px', color: '#64748b', fontSize: '13px' }}>
+  {b.passenger_email || 'Not Provided'}
+</td>
+
+<td style={{ padding: '16px' }}>
+  {b.is_authorized ? (
+    <span
+      style={{
+        padding: '6px 12px',
+        borderRadius: '20px',
+        fontSize: '11px',
+        fontWeight: '700',
+        background: '#dcfce7',
+        color: '#166534',
+      }}
+    >
+      Authorized
+    </span>
+  ) : (
+    <div>
+      <span
+        style={{
+          padding: '6px 12px',
+          borderRadius: '20px',
+          fontSize: '11px',
+          fontWeight: '700',
+          background: '#fee2e2',
+          color: '#991b1b',
+          display: 'inline-block',
+          marginBottom: '6px',
+        }}
+      >
+        Not Authorized
+      </span>
+
+      <div
+        style={{
+          fontSize: '11px',
+          color: '#64748b',
+          marginTop: '4px',
+          maxWidth: '180px',
+        }}
+      >
+        Click "I Authorize" in registered email
+      </div>
+    </div>
+  )}
+</td>
+
+<td style={{ padding: '16px' }}>
                               <span
                                 style={{
                                   padding: '6px 12px',
@@ -651,7 +758,7 @@ const Dashboard = () => {
                         ))
                       ) : (
                         <tr>
-                          <td colSpan="6" style={{ padding: '20px', color: '#64748b' }}>
+                          <td colSpan="7" style={{ padding: '20px', color: '#64748b' }}>
                             No customer bookings found.
                           </td>
                         </tr>

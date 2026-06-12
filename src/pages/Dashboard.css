@@ -492,3 +492,29 @@ input, select, textarea {
   font-weight: 800;
   border: 1px solid #bbf7d0;
 }
+
+.custom-alert-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.custom-alert-cancel {
+  padding: 10px 16px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 700;
+  color: #334155;
+}
+
+.custom-alert-confirm {
+  padding: 10px 16px;
+  border: none;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: white;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 800;
+}
