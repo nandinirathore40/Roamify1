@@ -182,15 +182,14 @@ const confirmLogout = () => {
             >
               💵 Refund
             </button>
-
-            {user?.role === 'manager' && (
-              <button
-                style={getNavStyle('/admin-access')}
-                onClick={() => navigate('/dashboard')}
-              >
-                👥 Admin Access
-              </button>
-            )}
+{user?.role === 'manager' && (
+  <button
+    style={getNavStyle('/admin-access')}
+    onClick={() => navigate('/admin-access')}
+  >
+    👥 Admin Access
+  </button>
+)}
           </nav>
 
           <div

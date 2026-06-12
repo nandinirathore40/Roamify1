@@ -15,6 +15,9 @@ const FutureCredit = () => {
   const ticketVal = Number(creditData.originalTicketValue) || 0;
   const cancelFee = Number(creditData.cancellationFee) || 0;
   const netCredit = Math.max(0, ticketVal - cancelFee);
+  
+  // Custom Alert State
+  const [customAlert, setCustomAlert] = useState(null);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -25,7 +28,15 @@ const FutureCredit = () => {
   };
 
   const handleProcessCredit = () => {
-    alert(`Processing Future Credit of $${netCredit} for PNR: ${creditData.pnrNumber}`);
+    // Purana browser alert hata diya
+    // alert(`Processing Future Credit of $${netCredit} for PNR: ${creditData.pnrNumber}`);
+    
+    // Naya Custom White Alert trigger kar rahe hain
+    setCustomAlert({
+      title: "Credit Processed Successfully",
+      message: `Processing Future Credit of $${netCredit} for PNR: ${creditData.pnrNumber}`
+    });
+    
     // Yahan backend API call aayegi
   };
 
@@ -169,6 +180,55 @@ const FutureCredit = () => {
           </div>
 
         </div>
+
+        {/* --- CUSTOM WHITE ALERT MODAL START --- */}
+        {customAlert && (
+          <div style={{
+            position: 'fixed',
+            top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999
+          }}>
+            <div style={{
+              background: '#ffffff',
+              borderRadius: '12px',
+              padding: '24px',
+              width: '400px',
+              maxWidth: '90%',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+              fontFamily: 'sans-serif'
+            }}>
+              <h3 style={{ margin: '0 0 12px 0', color: '#0f172a', fontSize: '18px', fontWeight: 'bold' }}>
+                {customAlert.title}
+              </h3>
+              <p style={{ margin: '0 0 24px 0', color: '#475569', fontSize: '15px', lineHeight: '1.5' }}>
+                {customAlert.message}
+              </p>
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button 
+                  onClick={() => setCustomAlert(null)}
+                  style={{
+                    background: '#3b82f6',
+                    color: 'white',
+                    border: 'none',
+                    padding: '8px 20px',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontWeight: '600',
+                    fontSize: '14px'
+                  }}
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        {/* --- CUSTOM WHITE ALERT MODAL END --- */}
+
       </div>
     </Layout>
   );

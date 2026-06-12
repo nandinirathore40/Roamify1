@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import Layout from '../components/Layout';
-import './Exchange.css'; 
-
+import './Exchange.css';
+import './Dashboard.css';
 const Exchange = () => {
   const [exchangeData, setExchangeData] = useState({
     oldTicketNumber: '',
@@ -28,6 +30,45 @@ const Exchange = () => {
       ...prev,
       [name]: value
     }));
+  };
+  const navigate = useNavigate();
+  const [customAlert, setCustomAlert] = useState(null);
+
+  const handleSubmit = async () => {
+    const payload = {
+      old_ticket_number: exchangeData.oldTicketNumber,
+      airline_name: exchangeData.airlineName,
+      pnr_number: exchangeData.pnrNumber,
+      exchange_fee: exchangeData.exchangeFee || 0,
+      new_departure_city: exchangeData.newDepartureCity,
+      new_arrival_city: exchangeData.newArrivalCity,
+      new_departure_date: exchangeData.newDepartureDate,
+      new_return_date: exchangeData.newReturnDate,
+      new_ticket_fare: exchangeData.newTicketFare || 0,
+      airline_penalty: exchangeData.airlinePenalty || 0,
+      agent_service_fee: exchangeData.agentServiceFee || 0,
+      exchange_reason: exchangeData.exchangeReason,
+      total_to_collect: totalToCollect
+    };
+
+    try {
+      const response = await axios.post('http://127.0.0.1:8000/api/exchanges/', payload);
+      if (response.status === 201) {
+        setCustomAlert({
+          title: "Exchange Processed Successfully",
+          message: "Exchange request has been saved to the database.",
+          type: "success",
+          onClose: () => navigate('/dashboard')
+        });
+      }
+    } catch (error) {
+      console.error("Exchange Submission Error:", error.response?.data || error.message);
+      setCustomAlert({
+        title: "Submission Failed",
+        message: "Error: Could not save exchange request to the server.",
+        type: "error"
+      });
+    }
   };
 
   return (
@@ -254,9 +295,12 @@ const Exchange = () => {
                 <div style={{ fontSize: '15px', fontWeight: '700', color: '#0f172a' }}>
                   Total to Collect: <span style={{ color: '#22c55e', fontSize: '20px', fontWeight: '800', marginLeft: '6px' }}>₹{totalToCollect}</span>
                 </div>
-                <button style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: '10px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.25)' }}>
-                  Process Exchange
-                </button>
+                <button 
+  onClick={handleSubmit}
+  style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: '10px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.25)' }}
+>
+  Process Exchange
+</button>
               </div>
             </div>
 
@@ -264,6 +308,41 @@ const Exchange = () => {
 
         </div>
       </div>
+
+      {customAlert && (
+        <div className="details-modal-overlay">
+          <div className="details-modal">
+            <div className="details-modal-header">
+              <div>
+                <h3>{customAlert.title}</h3>
+                <p>
+                  {customAlert.type === 'success'
+                    ? 'Operation Completed'
+                    : 'Attention Required'}
+                </p>
+              </div>
+              <button className="details-close-btn" onClick={() => setCustomAlert(null)}>
+                ✕
+              </button>
+            </div>
+            <div style={{ padding: '20px', color: '#475569', fontSize: '15px', lineHeight: '1.6' }}>
+              {customAlert.message}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                className="confirm-booking-btn"
+                onClick={() => {
+                  const closeAction = customAlert.onClose;
+                  setCustomAlert(null);
+                  if (closeAction) closeAction();
+                }}
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 };

@@ -29,17 +29,26 @@ const FALLBACK_FLIGHTS = [
   }
 ];
 
+const getSavedDraft = () => {
+  try {
+    const saved = localStorage.getItem('newBookingDraft');
+    return saved ? JSON.parse(saved) : null;
+  } catch (e) {
+    return null;
+  }
+};
+
 const NewBooking = () => {
- 
   const navigate = useNavigate();
   const { user } = useAuth();
+  const savedDraft = getSavedDraft();
   
-  const [activeStep, setActiveStep] = useState(1);
+  const [activeStep, setActiveStep] = useState(savedDraft?.activeStep || 1);
   const [flights, setFlights] = useState(FALLBACK_FLIGHTS);
-  const [selectedFlight, setSelectedFlight] = useState('');
-  const [passengers, setPassengers] = useState([{ name: '', dob: '' }]);
+  const [selectedFlight, setSelectedFlight] = useState(savedDraft?.selectedFlight || '');
+  const [passengers, setPassengers] = useState(savedDraft?.passengers || [{ name: '', dob: '' }]);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState(savedDraft?.formData || {
     departureCity: '',
     arrivalCity: '',
     departureTime: '',
@@ -60,7 +69,9 @@ const NewBooking = () => {
     subjectLine: '',
     attachments: []
   });
-const [customAlert, setCustomAlert] = useState(null)
+
+  const [customAlert, setCustomAlert] = useState(null);
+
   const glassCardStyle = {
     background: "rgba(255, 255, 255, 0.65)",
     backdropFilter: "blur(12px)",
@@ -70,6 +81,26 @@ const [customAlert, setCustomAlert] = useState(null)
     borderRadius: "16px",
     padding: "32px"
   };
+
+  useEffect(() => {
+    const draftToSave = {
+      activeStep,
+      selectedFlight,
+      passengers,
+      formData: { ...formData, attachments: [] }
+    };
+    localStorage.setItem('newBookingDraft', JSON.stringify(draftToSave));
+  }, [activeStep, selectedFlight, passengers, formData]);
+
+  useEffect(() => {
+    return () => {
+      formData.attachments.forEach(file => {
+        if (file.url && !file.isSnippet) {
+          URL.revokeObjectURL(file.url);
+        }
+      });
+    };
+  }, [formData.attachments]);
 
   useEffect(() => {
     axios.get(`${API_BASE_URL}/api/flights/`)
@@ -102,6 +133,43 @@ const [customAlert, setCustomAlert] = useState(null)
     }));
   };
 
+  // 🛑 STRICT VALIDATION LOGIC (WITH TRIM)
+  const validateStep = () => {
+    if (activeStep === 1) {
+      if (!selectedFlight || String(selectedFlight).trim() === '') return "Please select a flight.";
+      if (!formData.pnr || formData.pnr.trim() === '') return "PNR Number is required.";
+      if (!formData.departureCity || formData.departureCity.trim() === '' || !formData.arrivalCity || formData.arrivalCity.trim() === '') return "Departure and Arrival cities are required.";
+      if (!formData.departureTime || formData.departureTime.trim() === '') return "Departure Date & Time is required.";
+    }
+    if (activeStep === 2) {
+      if (!formData.cardNumber || formData.cardNumber.trim() === '') return "Card Number is required.";
+      if (!formData.cardHolderName || formData.cardHolderName.trim() === '') return "Card Holder Name is required.";
+      if (!formData.expiry || formData.expiry.trim() === '') return "Card Expiry Date is required.";
+      if (!formData.cvv || formData.cvv.trim() === '') return "CVV is required.";
+      if (!formData.email || formData.email.trim() === '') return "Customer Email Address is required.";
+    }
+    if (activeStep === 3) {
+      if (!formData.billingAddress || formData.billingAddress.trim() === '') return "Billing Address is required.";
+    }
+    if (activeStep === 4) {
+      for (let i = 0; i < passengers.length; i++) {
+        if (!passengers[i].name || passengers[i].name.trim() === '') return `Passenger #${i + 1} Name cannot be empty.`;
+        if (!passengers[i].dob || passengers[i].dob.trim() === '') return `Passenger #${i + 1} Date of Birth is required.`;
+      }
+    }
+    return null; 
+  };
+
+  const handleNext = (e) => {
+    e.preventDefault(); // Default submission rokne ke liye
+    const errorMessage = validateStep();
+    if (errorMessage) {
+      showAlert("Validation Error", errorMessage, "error");
+      return;
+    }
+    setActiveStep(prev => prev + 1);
+  };
+
   const handlePaste = (e) => {
     const items = e.clipboardData.items;
     for (let i = 0; i < items.length; i++) {
@@ -129,6 +197,13 @@ const [customAlert, setCustomAlert] = useState(null)
     setFormData(prev => ({ ...prev, attachments: [...prev.attachments, ...fileObjects] }));
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      document.getElementById('file-input').click();
+    }
+  };
+
   const handleChange = (e) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
@@ -149,31 +224,21 @@ const [customAlert, setCustomAlert] = useState(null)
       setPassengers(newPassengers);
     }
   };
-const showAlert = (title, message, type = 'success', onClose = null) => {
-  setCustomAlert({ title, message, type, onClose })
-}
-  const handleSubmit = async () => {
-    if (!selectedFlight) {
-      showAlert(
-  "Flight Required",
-  "Please go back and select a flight first.",
-  "error"
-)
-      return;
-    }
-    if (passengers[0].name === '' || !formData.email || !formData.pnr) {
-      showAlert(
-  "Missing Details",
-  "Required details are missing!",
-  "error"
-)
+
+  const showAlert = (title, message, type = 'success', onClose = null) => {
+    setCustomAlert({ title, message, type, onClose })
+  };
+
+  const handleSubmit = async (e) => {
+    if (e) e.preventDefault();
+    const errorMessage = validateStep();
+    if (errorMessage) {
+      showAlert("Validation Error", errorMessage, "error");
       return;
     }
 
     const combinedNames = passengers.map(p => p.name).join(', ');
     const combinedDobs = passengers.map(p => p.dob).join(', ');
-
-    // Expiry date format standard keeping string format or fallback string
     const formattedExpiry = formData.expiry ? formData.expiry : "12/28";
 
     const payload = {
@@ -202,21 +267,22 @@ const showAlert = (title, message, type = 'success', onClose = null) => {
     try {
       const response = await axios.post(`${API_BASE_URL}/api/bookings/`, payload);
       if (response.status === 201 || response.status === 200) {
+        localStorage.removeItem('newBookingDraft');
+
         const emailStatus = response.data?.email_status;
         const emailError = response.data?.email_error;
-        const nextStep = response.data?.current_step || 3;
-        const bookingId = response.data?.id;
-
-        const emailMessage = emailStatus === 'sent'
-          ? `\nConfirmation email sent to ${formData.email}.`
-          : `\nBooking saved, but confirmation email was not sent.\n${emailError || 'Please check Gmail SMTP credentials.'}`;
+        
+        const isEmailSent = emailStatus === 'sent';
+        const emailMessage = isEmailSent
+          ? `Booking saved successfully. Confirmation email sent to ${formData.email}.`
+          : `Booking saved, but confirmation email failed to send.\n${emailError || 'Please check Gmail SMTP credentials.'}`;
 
         showAlert(
-            "Booking Saved Successfully",
-            `Booking saved successfully. Confirmation email sent to ${formData.email}.`,
-            "success",
-            () => navigate('/dashboard')
-          );
+          isEmailSent ? "Booking Saved Successfully" : "Booking Saved with Warning",
+          emailMessage,
+          isEmailSent ? "success" : "error",
+          () => navigate('/dashboard')
+        );
       }
     } catch (error) {
       console.error("Submission Error Details:", error.response?.data || error.message);
@@ -238,7 +304,8 @@ const showAlert = (title, message, type = 'success', onClose = null) => {
     { id: 5, label: 'Documents', icon: '📎' },
   ];
 
-  const handleBack = () => {
+  const handleBack = (e) => {
+    e.preventDefault();
     if (activeStep > 1) {
       setActiveStep((prev) => prev - 1);
     } else {
@@ -310,7 +377,7 @@ const showAlert = (title, message, type = 'success', onClose = null) => {
                   <input type="number" name="secondCharge" placeholder="e.g., 200" value={formData.secondCharge} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
                 </div>
                 <div className="input-group">
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Select Flight</label>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Select Flight *</label>
                   <select value={selectedFlight} onChange={(e) => handleFlightSelect(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff' }} required>
                     <option value="">-- Choose Flight --</option>
                     {flights.map(f => (
@@ -321,7 +388,7 @@ const showAlert = (title, message, type = 'success', onClose = null) => {
                   </select>
                 </div>
                 <div className="input-group">
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>PNR Number</label>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>PNR Number *</label>
                   <input type="text" name="pnr" placeholder="6-digit PNR" value={formData.pnr} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
                 </div>
                 <div className="input-group">
@@ -329,15 +396,15 @@ const showAlert = (title, message, type = 'success', onClose = null) => {
                   <input type="text" name="airlineName" placeholder="e.g., American Airlines" value={formData.airlineName} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
                 </div>   
                 <div className="input-group">
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Departure City</label>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Departure City *</label>
                   <input type="text" name="departureCity" placeholder="e.g., Bozeman, MT (BZN)" value={formData.departureCity} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
                 </div>
                 <div className="input-group">
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Arrival City</label>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Arrival City *</label>
                   <input type="text" name="arrivalCity" placeholder="e.g., New York, NY (JFK)" value={formData.arrivalCity} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
                 </div>
                 <div className="input-group">
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Departure Date & Time</label>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Departure Date & Time *</label>
                   <input type="datetime-local" name="departureTime" value={formData.departureTime} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
                 </div>
                 <div className="input-group">
@@ -367,19 +434,19 @@ const showAlert = (title, message, type = 'success', onClose = null) => {
               <h3 className="step-title" style={{ color: '#1e293b', fontWeight: 'bold', marginBottom: '24px' }}>Card Details</h3>
               <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
                 <div className="input-group">
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Card Number</label>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Card Number *</label>
                   <input type="text" name="cardNumber" placeholder="0000 0000 0000 0000" value={formData.cardNumber} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
                 </div>
                 <div className="input-group">
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Card Holder Name</label>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Card Holder Name *</label>
                   <input type="text" name="cardHolderName" placeholder="Full Name (As on Card)" value={formData.cardHolderName} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
                 </div>
                 <div className="input-group">
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Expiry Date</label>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Expiry Date *</label>
                   <input type="month" name="expiry" value={formData.expiry} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
                 </div>
                 <div className="input-group">
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>CVV</label>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>CVV *</label>
                   <input type="password" name="cvv" placeholder="•••" value={formData.cvv} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
                 </div>
                 <div className="input-group">
@@ -393,7 +460,7 @@ const showAlert = (title, message, type = 'success', onClose = null) => {
                   </select>
                 </div>
                 <div className="input-group">
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Email Address</label>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Email Address *</label>
                   <input type="email" name="email" placeholder="customer@example.com" value={formData.email} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
                 </div>
                 <div className="input-group">
@@ -414,7 +481,7 @@ const showAlert = (title, message, type = 'success', onClose = null) => {
                   <input type="text" name="subjectLine" placeholder="e.g. Flight Booking" value={formData.subjectLine} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
                 </div>
                 <div className="input-group full-width" style={{ gridColumn: 'span 2' }}>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Billing Address</label>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Billing Address *</label>
                   <textarea name="billingAddress" rows="3" placeholder="Full Address" value={formData.billingAddress} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}></textarea>
                 </div>
               </div>
@@ -428,11 +495,11 @@ const showAlert = (title, message, type = 'success', onClose = null) => {
               {passengers.map((passenger, index) => (
                 <div key={index} className="passenger-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 50px', gap: '20px', marginBottom: '15px', alignItems: 'end', padding: '10px', background: 'rgba(0,0,0,0.02)', borderRadius: '8px' }}>
                   <div className="input-group">
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Passenger Name #{index + 1}</label>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Passenger Name #{index + 1} *</label>
                     <input type="text" name="name" placeholder="Full Name" value={passenger.name} onChange={(e) => handlePassengerChange(index, e)} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
                   </div>
                   <div className="input-group">
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Date of Birth</label>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Date of Birth *</label>
                     <input type="date" name="dob" value={passenger.dob} onChange={(e) => handlePassengerChange(index, e)} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
                   </div>
                   {passengers.length > 1 && (
@@ -451,7 +518,7 @@ const showAlert = (title, message, type = 'success', onClose = null) => {
             <div className="step-content">
               <h3 className="step-title" style={{ color: '#1e293b', fontWeight: 'bold', marginBottom: '24px' }}>Documents / Snipping Tool</h3>
               <div className="input-group full-width">
-                <div className="snip-zone" onPaste={handlePaste} tabIndex="0" style={{ border: '2px dashed rgba(0,0,0,0.2)', padding: '40px', textAlign: 'center', borderRadius: '8px', cursor: 'pointer', outline: 'none' }}>
+                <div className="snip-zone" onPaste={handlePaste} onKeyDown={handleKeyDown} tabIndex="0" style={{ border: '2px dashed rgba(0,0,0,0.2)', padding: '40px', textAlign: 'center', borderRadius: '8px', cursor: 'pointer', outline: 'none' }}>
                   <div className="snip-icon" style={{ fontSize: '24px', marginBottom: '10px' }}>✂️</div>
                   <p>Click here & press <strong>Ctrl + V</strong> to paste a snippet</p>
                   <span style={{ margin: '10px 0', display: 'block', color: '#64748b' }}>OR</span>
@@ -477,6 +544,7 @@ const showAlert = (title, message, type = 'success', onClose = null) => {
           {/* FOOTER BUTTONS */}
           <div className="wizard-footer" style={{ display: 'flex', justifyContent: 'space-between', marginTop: '32px', borderTop: '1px solid rgba(0,0,0,0.1)', paddingTop: '20px' }}>
             <button 
+              type="button" // <-- YEH ZAROORI HAI
               className={`btn-secondary ${activeStep === 1 ? 'hidden' : ''}`} 
               onClick={handleBack}
               style={{ background: 'transparent', border: '1px solid #94a3b8', padding: '10px 24px', borderRadius: '6px', cursor: 'pointer', visibility: activeStep === 1 ? 'hidden' : 'visible' }}
@@ -485,14 +553,16 @@ const showAlert = (title, message, type = 'success', onClose = null) => {
             </button>
             {activeStep < 5 ? (
               <button 
+                type="button" // <-- YEH BHI ZAROORI HAI
                 className="btn-primary" 
-                onClick={() => setActiveStep(prev => prev + 1)}
+                onClick={handleNext}
                 style={{ background: '#2563eb', color: 'white', border: 'none', padding: '10px 32px', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}
               >
                 Save & Next
               </button>
             ) : (
               <button 
+                type="button" // <-- YEH BHI ZAROORI HAI
                 className="btn-success" 
                 onClick={handleSubmit}
                 style={{ background: '#10b981', color: 'white', border: 'none', padding: '10px 32px', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}
@@ -504,61 +574,40 @@ const showAlert = (title, message, type = 'success', onClose = null) => {
 
         </div>
       </div>
+      
+      {/* CUSTOM ALERT MODAL */}
       {customAlert && (
-  <div className="details-modal-overlay">
-    <div className="details-modal">
-      <div className="details-modal-header">
-        <div>
-          <h3>{customAlert.title}</h3>
-          <p>
-            {customAlert.type === 'success'
-              ? 'Operation Completed'
-              : 'Attention Required'}
-          </p>
+        <div className="details-modal-overlay">
+          <div className="details-modal">
+            <div className="details-modal-header">
+              <div>
+                <h3>{customAlert.title}</h3>
+                <p>
+                  {customAlert.type === 'success' ? 'Operation Completed' : 'Attention Required'}
+                </p>
+              </div>
+              <button className="details-close-btn" onClick={() => setCustomAlert(null)}>✕</button>
+            </div>
+
+            <div style={{ padding: '20px', color: '#475569', fontSize: '15px', lineHeight: '1.6', whiteSpace: 'pre-line' }}>
+              {customAlert.message}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 20px 20px' }}>
+              <button
+                className="confirm-booking-btn"
+                onClick={() => {
+                  const closeAction = customAlert.onClose;
+                  setCustomAlert(null);
+                  if (closeAction) closeAction();
+                }}
+              >
+                OK
+              </button>
+            </div>
+          </div>
         </div>
-
-        <button
-          className="details-close-btn"
-          onClick={() => setCustomAlert(null)}
-        >
-          ✕
-        </button>
-      </div>
-
-      <div
-        style={{
-          padding: '20px',
-          color: '#475569',
-          fontSize: '15px',
-          lineHeight: '1.6',
-        }}
-      >
-        {customAlert.message}
-      </div>
-
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'flex-end',
-        }}
-      >
-        <button
-          className="confirm-booking-btn"
-          onClick={() => {
-            const closeAction = customAlert.onClose;
-            setCustomAlert(null);
-
-            if (closeAction) {
-              closeAction();
-            }
-          }}
-        >
-          OK
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+      )}
     </Layout>
   );
 };

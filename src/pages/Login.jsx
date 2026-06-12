@@ -1,9 +1,9 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
 import './Login.css'
 import wingBg from '../assets/wing1.jpg'
-// import API from '../api' // Temporarily disabled backend API call
 import AeroLogo from '../assets/aerologo.jpg'
 
 const Login = () => {
@@ -29,23 +29,20 @@ const Login = () => {
 
     setLoading(true)
 
-    // Bypass Backend API because login endpoint doesn't exist yet
     try {
-      setTimeout(() => {
-        // Mock user session based on input
-        const mockUser = {
-          name: email.split('@')[0], 
-          email: email,
-          role: role
-        };
-        
-        login(mockUser);
-        navigate('/dashboard');
-      }, 800); // 0.8 seconds loading delay for realism
+      const response = await axios.post('http://127.0.0.1:8000/api/login/', {
+        email,
+        password,
+        role,
+      })
+
+      login(response.data.user)
+      navigate('/dashboard')
     } catch (err) {
-      setError('Something went wrong locally')
+      setError(err.response?.data?.error || 'Login failed. Please try again.')
+    } finally {
       setLoading(false)
-    } 
+    }
   }
 
   return (
@@ -82,7 +79,7 @@ const Login = () => {
           zIndex: 10,
         }}
       >
-        {/* HEADER - Updated Logo Section */}
+        {/* HEADER */}
         <div className="login-header" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '20px' }}>
           <img 
             src={AeroLogo} 
@@ -107,7 +104,6 @@ const Login = () => {
           </label>
           
           <div className="role-toggle-grid" style={{ display: 'flex', gap: '16px' }}>
-            {/* AGENT BUTTON */}
             <button 
               type="button" 
               onClick={() => setRole('agent')}
@@ -132,7 +128,6 @@ const Login = () => {
               <span style={{ fontSize: '14px', fontWeight: '600' }}>Agent</span>
             </button>
 
-            {/* MANAGER BUTTON */}
             <button 
               type="button" 
               onClick={() => setRole('manager')}

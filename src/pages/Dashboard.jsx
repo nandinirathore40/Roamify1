@@ -3,6 +3,7 @@ import axios from 'axios'
 import Layout from '../components/Layout'
 import { useAuth } from '../context/AuthContext'
 import './Dashboard.css'
+import Swal from 'sweetalert2'
 
 const RevenueOverviewChart = () => {
   return (
@@ -418,10 +419,27 @@ const fetchDashboardData = async () => {
       )
 
       setSelectedBooking(null)
-      alert('Booking updated successfully!')
+      
+      // 2. Purane alert('Booking updated successfully!') ki jagah ye likhein:
+      Swal.fire({
+        title: 'Success!',
+        text: 'Booking updated successfully!',
+        icon: 'success',
+        confirmButtonColor: '#3b82f6', // Aapke UI ki blue theme se match karega
+        background: '#ffffff',         // Isse popup hamesha white background me rahega
+      })
+
     } catch (error) {
       console.error('Booking update error:', error.response?.data || error.message)
-      alert('Error updating booking.')
+      
+      // 3. Error alert ko bhi premium look dene ke liye:
+      Swal.fire({
+        title: 'Error!',
+        text: 'Error updating booking.',
+        icon: 'error',
+        confirmButtonColor: '#ef4444',
+        background: '#ffffff',
+      })
     }
   }
 

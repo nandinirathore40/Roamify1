@@ -6,8 +6,10 @@ import './Dashboard.css'
 
 const Refund = () => {
   const navigate = useNavigate()
+  const [customAlert, setCustomAlert] = useState(null)
 
   const [formData, setFormData] = useState({
+    
     ticketNumber: '',
     airlineName: '',
     pnrNumber: '',
@@ -51,12 +53,20 @@ const Refund = () => {
     try {
       const response = await axios.post('http://127.0.0.1:8000/api/refunds/', payload)
       if (response.status === 201) {
-        alert("Success! Refund request database mein save ho gayi.")
-        navigate('/dashboard')
+        setCustomAlert({
+          title: "Refund Saved Successfully",
+          message: "Refund request has been saved to the database.",
+          type: "success",
+          onClose: () => navigate('/dashboard')
+        })
       }
     } catch (error) {
       console.error("Refund Submission Error:", error.response?.data || error.message)
-      alert("Error: Backend tak request nahi pahonchi!")
+      setCustomAlert({
+        title: "Submission Failed",
+        message: "Error: Could not save refund request to the server.",
+        type: "error"
+      })
     }
   }
 
@@ -197,6 +207,54 @@ const Refund = () => {
         </div>
 
       </div>
+
+      {customAlert && (
+        <div className="details-modal-overlay">
+          <div className="details-modal">
+            <div className="details-modal-header">
+              <div>
+                <h3>{customAlert.title}</h3>
+                <p>
+                  {customAlert.type === 'success'
+                    ? 'Operation Completed'
+                    : 'Attention Required'}
+                </p>
+              </div>
+
+              <button
+                className="details-close-btn"
+                onClick={() => setCustomAlert(null)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div
+              style={{
+                padding: '20px',
+                color: '#475569',
+                fontSize: '15px',
+                lineHeight: '1.6',
+              }}
+            >
+              {customAlert.message}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                className="confirm-booking-btn"
+                onClick={() => {
+                  const closeAction = customAlert.onClose
+                  setCustomAlert(null)
+                  if (closeAction) closeAction()
+                }}
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   )
 }
