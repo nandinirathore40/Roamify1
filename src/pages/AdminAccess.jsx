@@ -7,7 +7,7 @@ const AdminAccess = () => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    axios.get('http://127.0.0.1:8000/api/users/')
+    axios.get('import.meta.env.VITE_API_BASE_URL/api/users/')
       .then(res => {
         setUsers(res.data)
         setLoading(false)

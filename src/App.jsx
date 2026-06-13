@@ -8,6 +8,7 @@ import Exchange from './pages/Exchange'
 import FutureCredit from './pages/FutureCredit'
 import Refund from './pages/Refund'
 import AdminAccess from './pages/AdminAccess'
+import FlightList from './components/FlightList';
 // Agar user logged in nahi hai, toh seedha root ("/") par wapas bhej do jahan Login page hai
 const ProtectedRoute = ({ children }) => {
   const { user } = useAuth()
@@ -21,7 +22,7 @@ function AppRoutes() {
     <Routes>
       {/* 1. Root Path - Agar user hai toh Dashboard, nahi toh Login page */}
       <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
-      
+      <Route path="/flights" element={<ProtectedRoute><FlightList /></ProtectedRoute>} />
       {/* 2. Protected Routes */}
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/new-booking" element={<ProtectedRoute><NewBooking /></ProtectedRoute>} />

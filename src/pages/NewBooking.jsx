@@ -6,7 +6,7 @@ import './Dashboard.css';
 import './NewBooking.css';
 import { useAuth } from '../context/AuthContext';
 
-const API_BASE_URL = 'http://127.0.0.1:8000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 
 const FALLBACK_FLIGHTS = [
   {

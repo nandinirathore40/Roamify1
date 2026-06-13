@@ -4,7 +4,9 @@ import Layout from '../components/Layout'
 import { useAuth } from '../context/AuthContext'
 import './Dashboard.css'
 import Swal from 'sweetalert2'
-
+import { useNavigate } from 'react-router-dom';
+import API from '../api'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 const RevenueOverviewChart = () => {
   return (
     <div style={{ width: '100%', height: '260px', marginTop: '16px', display: 'flex', flexDirection: 'column', fontFamily: 'sans-serif', position: 'relative' }}>
@@ -325,10 +327,13 @@ const fetchDashboardData = async () => {
         return { data: [] };
       });
 
-      const exchangesRes = await axios.get('http://127.0.0.1:8000/api/exchanges/').catch(() => ({ data: [] }));
-      const refundsRes = await axios.get('http://127.0.0.1:8000/api/refunds/').catch(() => ({ data: [] }));
-      const creditsRes = await axios.get('http://127.0.0.1:8000/api/future-credits/').catch(() => ({ data: [] }));
-
+      const bookingsRes = await axios.get(`${API_BASE_URL}/api/bookings/`).catch(err => {
+        console.error("Bookings fetch failed:", err);
+        return { data: [] };
+      });
+      const exchangesRes = await axios.get(`${API_BASE_URL}/api/exchanges/`).catch(() => ({ data: [] }));
+      const refundsRes = await axios.get(`${API_BASE_URL}/api/refunds/`).catch(() => ({ data: [] }));
+      const creditsRes = await axios.get(`${API_BASE_URL}/api/future-credits/`).catch(() => ({ data: [] }));
       let bookingsData = bookingsRes.data || [];
       let exchangesData = exchangesRes.data || [];
       let refundsData = refundsRes.data || [];
@@ -367,7 +372,7 @@ const fetchDashboardData = async () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await axios.get('http://127.0.0.1:8000/api/users/')
+      const response = await axios.get(`${API_BASE_URL}/api/users/`)
       setUsers(response.data.filter((u) => Number(u.id) !== Number(user.id)))
     } catch (error) {
       console.error('Users fetch error:', error)
@@ -376,9 +381,7 @@ const fetchDashboardData = async () => {
 
   const fetchMessages = async () => {
     try {
-      const response = await axios.get(
-        `http://127.0.0.1:8000/api/messages/?user_id=${user.id}`
-      )
+      const response = await axios.get(`${API_BASE_URL}/api/messages/?user_id=${user.id}`)
       setMessages(response.data)
     } catch (error) {
       console.error('Messages fetch error:', error)
@@ -407,10 +410,9 @@ const fetchDashboardData = async () => {
 
   const handleUpdateBooking = async () => {
     try {
-      const response = await axios.patch(
-        `http://127.0.0.1:8000/api/bookings/${selectedBooking.id}/`,
+      const response = await axios.patch(`${API_BASE_URL}/api/bookings/${selectedBooking.id}/`, bookingForm)
         bookingForm
-      )
+      
 
       setBookings((prev) =>
         prev.map((item) =>
@@ -447,7 +449,7 @@ const fetchDashboardData = async () => {
     if (!selectedChatUser || !newMessage.trim()) return
 
     try {
-      await axios.post('http://127.0.0.1:8000/api/messages/', {
+      await axios.post(`${API_BASE_URL}/api/messages/`,  {
         sender: user.id,
         receiver: selectedChatUser.id,
         text: newMessage,
