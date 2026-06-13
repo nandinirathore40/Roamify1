@@ -322,10 +322,6 @@ const Dashboard = () => {
 
 const fetchDashboardData = async () => {
     try {
-      const bookingsRes = await axios.get('http://127.0.0.1:8000/api/bookings/').catch(err => {
-        console.error("Bookings fetch failed:", err);
-        return { data: [] };
-      });
 
       const bookingsRes = await axios.get(`${API_BASE_URL}/api/bookings/`).catch(err => {
         console.error("Bookings fetch failed:", err);
