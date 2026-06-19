@@ -8,7 +8,9 @@ import Exchange from './pages/Exchange'
 import FutureCredit from './pages/FutureCredit'
 import Refund from './pages/Refund'
 import AdminAccess from './pages/AdminAccess'
+import Register from './pages/Register'
 import FlightList from './components/FlightList';
+import ForgotPassword from './pages/ForgotPassword'
 // Agar user logged in nahi hai, toh seedha root ("/") par wapas bhej do jahan Login page hai
 const ProtectedRoute = ({ children }) => {
   const { user } = useAuth()
@@ -32,6 +34,12 @@ function AppRoutes() {
       <Route path="/admin-access" element={<ProtectedRoute><AdminAccess /></ProtectedRoute>} />
       {/* 3. Fallback - Koi galat URL daale toh seedha root par bhej do */}
       <Route path="*" element={<Navigate to="/" replace />} />
+      <Route
+  path="/register"
+  element={user ? <Navigate to="/dashboard" replace /> : <Register />}
+  
+/>
+<Route path="/forgot-password" element={<ForgotPassword />} />
     </Routes>
   )
 }

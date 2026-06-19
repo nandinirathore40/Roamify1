@@ -176,7 +176,25 @@ const Login = () => {
               <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} />
               <span>Remember me</span>
             </label>
-            <a href="#" className="forgot-link" style={{ fontSize: '14px', color: '#1a73e8', textDecoration: 'none', fontWeight: '500' }}>Forgot password?</a>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+  <button
+    type="button"
+    className="forgot-link"
+    onClick={() => navigate('/forgot-password')}
+    style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}
+  >
+    Forgot password?
+  </button>
+
+  <button
+    type="button"
+    onClick={() => navigate('/register')}
+    className="forgot-link"
+    style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}
+  >
+    Register
+  </button>
+</div>
           </div>
 
           {error && <p className="error-text" style={{ color: '#ef4444', fontSize: '14px', marginBottom: '16px' }}>{error}</p>}
