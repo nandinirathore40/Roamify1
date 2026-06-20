@@ -42,7 +42,7 @@ const AdminAccess = () => {
               {loading ? (
                 <tr><td colSpan="4" style={{ padding: '20px', color: '#64748b' }}>Loading...</td></tr>
               ) : users.length > 0 ? (
-                users.map(u => (
+                Array.isArray(users) && users.map(u => (
                   <tr key={u.id} style={{ borderBottom: '1px solid #f8fafc' }}>
                     <td style={{ padding: '16px', color: '#334155', fontSize: '13px' }}>{u.id}</td>
                     <td style={{ padding: '16px', color: '#334155', fontWeight: '600', fontSize: '13px' }}>{u.username}</td>

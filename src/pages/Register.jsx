@@ -1,9 +1,9 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import API from '../api'
-import './Register.css'
+import './Login.css' // <-- Ab hum Login wala CSS hi use kar rahe hain!
 import wingBg from '../assets/wing1.jpg'
-import aerologo from '../assets/aerologo.jpg'
+import AeroLogo from '../assets/aerologo.jpg'
 
 const Register = () => {
   const navigate = useNavigate()
@@ -36,10 +36,10 @@ const Register = () => {
 
     try {
       await API.post('send-registration-otp/', {
-  full_name: fullName.trim(),
-  email: email.trim().toLowerCase(),
-  password,
-})
+        full_name: fullName.trim(),
+        email: email.trim().toLowerCase(),
+        password,
+      })
 
       setOtpSent(true)
       setMessage('OTP sent to your email.')
@@ -62,10 +62,10 @@ const Register = () => {
     setLoading(true)
 
     try {
-     await API.post('verify-registration-otp/', {
-  email: email.trim().toLowerCase(),
-  otp: otp.trim(),
-})
+      await API.post('verify-registration-otp/', {
+        email: email.trim().toLowerCase(),
+        otp: otp.trim(),
+      })
 
       setMessage('Registration successful. Redirecting to login...')
 
@@ -81,100 +81,162 @@ const Register = () => {
 
   return (
     <div
-      className="register-page"
-      style={{ backgroundImage: `url(${wingBg})` }}
+      style={{
+        backgroundImage: `url(${wingBg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        height: '100vh',
+        width: '100vw',
+        display: 'flex',
+        margin: 0,
+        padding: 0,
+        overflow: 'hidden',
+      }}
     >
-      <div className="register-panel">
-        <div className="register-header">
-          <div className="register-logo-box">
-            <img src={aerologo} alt="Roamify" />
-          </div>
-
-          <h1>Create Agent Account</h1>
-          <p>Register with email OTP verification</p>
+      <div
+        style={{
+          width: '100%',
+          maxWidth: '460px',
+          height: '100vh',
+          background: 'rgba(255, 255, 255, 0.08)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          padding: '0 40px',
+          margin: 0,
+          borderRadius: 0,
+          borderRight: '1px solid rgba(255, 255, 255, 0.2)',
+          boxShadow: '10px 0 30px rgba(0, 0, 0, 0.1)',
+          zIndex: 10,
+        }}
+      >
+        {/* HEADER DIRECTLY COPIED FROM LOGIN */}
+        <div className="login-header" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '20px' }}>
+          <img 
+            src={AeroLogo} 
+            alt="Roamify Logo" 
+            style={{ 
+              width: '64px', 
+              height: '64px', 
+              borderRadius: '12px', 
+              objectFit: 'cover',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+              marginBottom: '16px'
+            }} 
+          />
+          <h1 style={{ fontSize: '26px', fontWeight: '800', color: '#111827', margin: '0 0 8px 0' }}>Create Account</h1>
+          <p style={{ fontSize: '15px', color: '#374151', margin: 0, fontWeight: '500' }}>Register as an Agent</p>
         </div>
 
-        <div className="register-role-box">
-          Role: <strong>Agent</strong>
-        </div>
-
-        <div className="register-form">
-          <div className="register-input-group">
-            <label>Full Name</label>
-            <input
-              type="text"
-              placeholder="Enter full name"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              disabled={otpSent}
-            />
+        {/* FORM */}
+        <div className="login-form-modern">
+          <div className="input-group">
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#111827', marginBottom: '8px' }}>Full Name</label>
+            <div className="input-with-icon">
+              <input 
+                type="text" 
+                placeholder="Enter full name" 
+                value={fullName} 
+                onChange={(e) => setFullName(e.target.value)} 
+                disabled={otpSent}
+                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db', color: '#111827' }}
+              />
+            </div>
           </div>
 
-          <div className="register-input-group">
-            <label>Email Address</label>
-            <input
-              type="email"
-              placeholder="Enter email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={otpSent}
-            />
+          <div className="input-group" style={{ marginTop: '12px' }}>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#111827', marginBottom: '8px' }}>Email Address</label>
+            <div className="input-with-icon">
+              <input 
+                type="email" 
+                placeholder="Enter email" 
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)} 
+                disabled={otpSent}
+                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db', color: '#111827' }}
+              />
+            </div>
           </div>
 
-          <div className="register-input-group">
-            <label>Password</label>
-            <input
-              type="password"
-              placeholder="Create password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={otpSent}
-            />
-          </div>
-
-          <div className="register-input-group">
-            <label>Confirm Password</label>
-            <input
-              type="password"
-              placeholder="Confirm password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              disabled={otpSent}
-            />
+          <div className="input-group" style={{ marginTop: '12px', display: 'flex', gap: '12px' }}>
+            <div style={{ flex: 1 }}>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#111827', marginBottom: '8px' }}>Password</label>
+              <input 
+                type="password" 
+                placeholder="Password" 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)} 
+                disabled={otpSent}
+                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db', color: '#111827' }}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#111827', marginBottom: '8px' }}>Confirm</label>
+              <input 
+                type="password" 
+                placeholder="Confirm" 
+                value={confirmPassword} 
+                onChange={(e) => setConfirmPassword(e.target.value)} 
+                disabled={otpSent}
+                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db', color: '#111827' }}
+              />
+            </div>
           </div>
 
           {otpSent && (
-            <div className="register-input-group">
-              <label>Enter OTP</label>
-              <input
-  type="text"
-  placeholder="6-digit OTP"
-  value={otp}
-  maxLength="6"
-  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-/>
+            <div className="input-group" style={{ marginTop: '12px' }}>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#111827', marginBottom: '8px' }}>Enter OTP</label>
+              <div className="input-with-icon">
+                <input
+                  type="text"
+                  placeholder="6-digit OTP"
+                  value={otp}
+                  maxLength="6"
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                  style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db', color: '#111827' }}
+                />
+              </div>
             </div>
           )}
 
-          {error && <p className="register-error">{error}</p>}
-          {message && <p className="register-success">{message}</p>}
+          {error && <p className="error-text" style={{ color: '#ef4444', fontSize: '13px', margin: '8px 0 0 0', fontWeight: '600', textAlign: 'center' }}>{error}</p>}
+          {message && <p style={{ color: '#166534', fontSize: '13px', margin: '8px 0 0 0', fontWeight: '600', textAlign: 'center' }}>{message}</p>}
 
           {!otpSent ? (
-            <button className="register-submit-btn" onClick={sendOtp} disabled={loading}>
+            <button 
+              type="button" 
+              className="submit-btn" 
+              onClick={sendOtp} 
+              disabled={loading} 
+              style={{ width: '100%', padding: '12px', background: '#1a73e8', color: 'white', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: '600', cursor: 'pointer', marginTop: '16px' }}
+            >
               {loading ? 'Sending OTP...' : 'Send OTP'}
             </button>
           ) : (
-            <button className="register-submit-btn" onClick={verifyOtp} disabled={loading}>
+            <button 
+              type="button" 
+              className="submit-btn" 
+              onClick={verifyOtp} 
+              disabled={loading} 
+              style={{ width: '100%', padding: '12px', background: '#1a73e8', color: 'white', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: '600', cursor: 'pointer', marginTop: '16px' }}
+            >
               {loading ? 'Verifying...' : 'Verify & Register'}
             </button>
           )}
 
-          <button
-            className="register-login-link"
-            onClick={() => navigate('/login')}
-          >
-            Already have an account? Sign In
-          </button>
+          <div style={{ textAlign: 'center', marginTop: '16px' }}>
+            <button
+              type="button"
+              className="forgot-link"
+              onClick={() => navigate('/login')}
+              style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: '#1a73e8', fontWeight: '700' }}
+            >
+              Already have an account? Sign In
+            </button>
+          </div>
         </div>
       </div>
     </div>
