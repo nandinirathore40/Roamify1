@@ -9,7 +9,6 @@ const Refund = () => {
   const [customAlert, setCustomAlert] = useState(null)
 
   const [formData, setFormData] = useState({
-    
     ticketNumber: '',
     airlineName: '',
     pnrNumber: '',
@@ -38,6 +37,16 @@ const Refund = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+
+    // 🛑 EXACT 6 CHARACTERS VALIDATION PNR KE LIYE
+    if (formData.pnrNumber.trim().length !== 6) {
+      setCustomAlert({
+        title: "Validation Error",
+        message: "PNR Number must be exactly 6 characters long.",
+        type: "error"
+      });
+      return; // API call rok do yahan
+    }
 
     const payload = {
       ticket_number: formData.ticketNumber,
@@ -149,7 +158,23 @@ const Refund = () => {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
               <div>
                 <label style={labelStyle}>PNR Number</label>
-                <input ref={el => inputsRef.current[2] = el} type="text" name="pnrNumber" value={formData.pnrNumber} onChange={handleChange} required style={inputStyle} onFocus={focusEffect} onBlur={blurEffect} placeholder="Enter 6-digit PNR" />
+                {/* 🛑 YAHAN PNR KA CUSTOM LOGIC LAGA DIYA HAI */}
+                <input 
+                  ref={el => inputsRef.current[2] = el} 
+                  type="text" 
+                  name="pnrNumber" 
+                  value={formData.pnrNumber} 
+                  onChange={(e) => {
+                    const formattedPnr = e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+                    setFormData(prev => ({ ...prev, pnrNumber: formattedPnr }));
+                  }} 
+                  required 
+                  maxLength={6}
+                  style={{...inputStyle, textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 'bold'}} 
+                  onFocus={focusEffect} 
+                  onBlur={blurEffect} 
+                  placeholder="Enter 6 digit PNR" 
+                />
               </div>
               <div>
                 <label style={labelStyle}>Refund Amount</label>

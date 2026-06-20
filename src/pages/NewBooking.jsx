@@ -6,7 +6,7 @@ import './Dashboard.css';
 import './NewBooking.css';
 import { useAuth } from '../context/AuthContext';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+const API_BASE_URL = 'https://flight-backend-auda.onrender.com';
 
 const FALLBACK_FLIGHTS = [
   {
@@ -133,11 +133,12 @@ const NewBooking = () => {
     }));
   };
 
-  // 🛑 STRICT VALIDATION LOGIC (WITH TRIM)
+  // 🛑 STRICT VALIDATION LOGIC (WITH TRIM & PNR EXACT 6 CHARS CHECK)
   const validateStep = () => {
     if (activeStep === 1) {
       if (!selectedFlight || String(selectedFlight).trim() === '') return "Please select a flight.";
       if (!formData.pnr || formData.pnr.trim() === '') return "PNR Number is required.";
+      if (formData.pnr.trim().length !== 6) return "PNR Number must be exactly 6 characters long.";
       if (!formData.departureCity || formData.departureCity.trim() === '' || !formData.arrivalCity || formData.arrivalCity.trim() === '') return "Departure and Arrival cities are required.";
       if (!formData.departureTime || formData.departureTime.trim() === '') return "Departure Date & Time is required.";
     }
@@ -161,7 +162,7 @@ const NewBooking = () => {
   };
 
   const handleNext = (e) => {
-    e.preventDefault(); // Default submission rokne ke liye
+    e.preventDefault();
     const errorMessage = validateStep();
     if (errorMessage) {
       showAlert("Validation Error", errorMessage, "error");
@@ -389,19 +390,30 @@ const NewBooking = () => {
                 </div>
                 <div className="input-group">
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>PNR Number *</label>
-                  <input type="text" name="pnr" placeholder="6-digit PNR" value={formData.pnr} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                  <input 
+                    type="text" 
+                    name="pnr" 
+                    placeholder="6-digit PNR" 
+                    maxLength={6}
+                    value={formData.pnr} 
+                    onChange={(e) => {
+                      const formattedPnr = e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+                      setFormData(prev => ({ ...prev, pnr: formattedPnr }));
+                    }} 
+                    style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 'bold' }} 
+                  />
                 </div>
                 <div className="input-group">
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Airline Name</label>
-                  <input type="text" name="airlineName" placeholder="e.g., American Airlines" value={formData.airlineName} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                  <input type="text" name="airlineName" placeholder="American Airlines" value={formData.airlineName} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
                 </div>   
                 <div className="input-group">
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Departure City *</label>
-                  <input type="text" name="departureCity" placeholder="e.g., Bozeman, MT (BZN)" value={formData.departureCity} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                  <input type="text" name="departureCity" placeholder="Bozeman, MT (BZN)" value={formData.departureCity} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
                 </div>
                 <div className="input-group">
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Arrival City *</label>
-                  <input type="text" name="arrivalCity" placeholder="e.g., New York, NY (JFK)" value={formData.arrivalCity} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                  <input type="text" name="arrivalCity" placeholder=" New York, NY (JFK)" value={formData.arrivalCity} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
                 </div>
                 <div className="input-group">
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Departure Date & Time *</label>
@@ -478,7 +490,7 @@ const NewBooking = () => {
               <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
                 <div className="input-group">
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Subject Line</label>
-                  <input type="text" name="subjectLine" placeholder="e.g. Flight Booking" value={formData.subjectLine} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                  <input type="text" name="subjectLine" placeholder=" Flight Booking" value={formData.subjectLine} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
                 </div>
                 <div className="input-group full-width" style={{ gridColumn: 'span 2' }}>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Billing Address *</label>
@@ -544,7 +556,7 @@ const NewBooking = () => {
           {/* FOOTER BUTTONS */}
           <div className="wizard-footer" style={{ display: 'flex', justifyContent: 'space-between', marginTop: '32px', borderTop: '1px solid rgba(0,0,0,0.1)', paddingTop: '20px' }}>
             <button 
-              type="button" // <-- YEH ZAROORI HAI
+              type="button" 
               className={`btn-secondary ${activeStep === 1 ? 'hidden' : ''}`} 
               onClick={handleBack}
               style={{ background: 'transparent', border: '1px solid #94a3b8', padding: '10px 24px', borderRadius: '6px', cursor: 'pointer', visibility: activeStep === 1 ? 'hidden' : 'visible' }}
@@ -553,7 +565,7 @@ const NewBooking = () => {
             </button>
             {activeStep < 5 ? (
               <button 
-                type="button" // <-- YEH BHI ZAROORI HAI
+                type="button" 
                 className="btn-primary" 
                 onClick={handleNext}
                 style={{ background: '#2563eb', color: 'white', border: 'none', padding: '10px 32px', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}
@@ -562,7 +574,7 @@ const NewBooking = () => {
               </button>
             ) : (
               <button 
-                type="button" // <-- YEH BHI ZAROORI HAI
+                type="button" 
                 className="btn-success" 
                 onClick={handleSubmit}
                 style={{ background: '#10b981', color: 'white', border: 'none', padding: '10px 32px', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}
