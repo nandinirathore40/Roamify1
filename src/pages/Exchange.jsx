@@ -52,7 +52,7 @@ const Exchange = () => {
     };
 
     try {
-      const response = await axios.post('http://127.0.0.1:8000/api/exchanges/', payload);
+      const response = await axios.post('https://flight-backend-auda.onrender.com/api/exchanges/', payload);
       if (response.status === 201) {
         setCustomAlert({
           title: "Exchange Processed Successfully",

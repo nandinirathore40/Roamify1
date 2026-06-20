@@ -6,7 +6,7 @@ import './Dashboard.css'
 import Swal from 'sweetalert2'
 import { useNavigate } from 'react-router-dom';
 import API from '../api'
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://flight-backend-auda.onrender.com';
 const RevenueOverviewChart = () => {
   return (
     <div style={{ width: '100%', height: '260px', marginTop: '16px', display: 'flex', flexDirection: 'column', fontFamily: 'sans-serif', position: 'relative' }}>

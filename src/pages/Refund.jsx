@@ -60,7 +60,7 @@ const Refund = () => {
     }
 
     try {
-      const response = await axios.post('http://127.0.0.1:8000/api/refunds/', payload)
+      const response = await axios.post('https://flight-backend-auda.onrender.com/api/refunds/', payload)
       if (response.status === 201) {
         setCustomAlert({
           title: "Refund Saved Successfully",
