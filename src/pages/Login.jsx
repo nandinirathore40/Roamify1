@@ -29,8 +29,8 @@ const Login = () => {
 
     setLoading(true)
 
-    try {const response = await axios.post(`${import.meta.env.VITE_API_BASE_URL || 'https://flight-backend-auda.onrender.com'}/api/login/`, {
-      
+    try {
+      const response = await axios.post(`${import.meta.env.VITE_API_BASE_URL || 'https://flight-backend-auda.onrender.com'}/api/login/`, {
         email,
         password,
         role,
@@ -159,15 +159,28 @@ const Login = () => {
           <div className="input-group">
             <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#111827', marginBottom: '8px' }}>Email Address</label>
             <div className="input-with-icon">
-              <input type="email" placeholder="Enter your email" value={email} onChange={(e) => setEmail(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db' }}/>
+              <input type="email" placeholder="Enter your email" value={email} onChange={(e) => setEmail(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db', color: '#111827' }}/>
             </div>
           </div>
 
           <div className="input-group" style={{ marginTop: '16px' }}>
             <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#111827', marginBottom: '8px' }}>Password</label>
             <div className="input-with-icon password-wrap" style={{ position: 'relative' }}>
-              <input type={showPassword ? 'text' : 'password'} placeholder="Enter password" value={password} onChange={(e) => setPassword(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db', paddingRight: '40px' }}/>
-              <button type="button" className="pwd-toggle-btn" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer' }}>👁</button>
+              <input type={showPassword ? 'text' : 'password'} placeholder="Enter password" value={password} onChange={(e) => setPassword(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db', paddingRight: '40px', color: '#111827' }}/>
+              <button 
+                type="button" 
+                className="pwd-toggle-btn" 
+                onClick={() => setShowPassword(!showPassword)} 
+                style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                {showPassword ? (
+                  /* Jab password Dikh raha ho -> Cut wali aankh (Hide karne ka option) */
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                ) : (
+                  /* Jab password Hidden ho -> Normal aankh (Show karne ka option) */
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                )}
+              </button>
             </div>
           </div>
 
@@ -177,27 +190,27 @@ const Login = () => {
               <span>Remember me</span>
             </label>
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-  <button
-    type="button"
-    className="forgot-link"
-    onClick={() => navigate('/forgot-password')}
-    style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}
-  >
-    Forgot password?
-  </button>
+              <button
+                type="button"
+                className="forgot-link"
+                onClick={() => navigate('/forgot-password')}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: '#1a73e8', fontWeight: '500' }}
+              >
+                Forgot password?
+              </button>
 
-  <button
-    type="button"
-    onClick={() => navigate('/register')}
-    className="forgot-link"
-    style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}
-  >
-    Register
-  </button>
-</div>
+              <button
+                type="button"
+                onClick={() => navigate('/register')}
+                className="forgot-link"
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: '#1a73e8', fontWeight: '500' }}
+              >
+                Register
+              </button>
+            </div>
           </div>
 
-          {error && <p className="error-text" style={{ color: '#ef4444', fontSize: '14px', marginBottom: '16px' }}>{error}</p>}
+          {error && <p className="error-text" style={{ color: '#ef4444', fontSize: '14px', marginBottom: '16px', fontWeight: '500' }}>{error}</p>}
 
           <button type="submit" className="submit-btn" disabled={loading} style={{ width: '100%', padding: '12px', background: '#1a73e8', color: 'white', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: '600', cursor: 'pointer' }}>
             {loading ? 'Signing in...' : 'Sign In'}

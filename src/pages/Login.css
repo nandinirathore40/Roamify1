@@ -447,3 +447,8 @@
 .input-group label {
   color: #111827; /* Label dark rakhe hain taaki padhne mein aayein */
 }
+/* Browser ke default password reveal icon (Edge/IE) ko hide karne ke liye */
+input::-ms-reveal,
+input::-ms-clear {
+    display: none;
+}
