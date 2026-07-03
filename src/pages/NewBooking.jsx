@@ -6,7 +6,7 @@ import './Dashboard.css';
 import './NewBooking.css';
 import { useAuth } from '../context/AuthContext';
 
-const API_BASE_URL = 'https://flight-backend-auda.onrender.com';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 
 const FALLBACK_FLIGHTS = [
   {
@@ -133,7 +133,7 @@ const NewBooking = () => {
     }));
   };
 
-  // 🛑 STRICT VALIDATION LOGIC (WITH TRIM & PNR EXACT 6 CHARS CHECK)
+  // 🛑 STRICT VALIDATION LOGIC
   const validateStep = () => {
     if (activeStep === 1) {
       if (!selectedFlight || String(selectedFlight).trim() === '') return "Please select a flight.";
@@ -148,6 +148,7 @@ const NewBooking = () => {
       if (!formData.expiry || formData.expiry.trim() === '') return "Card Expiry Date is required.";
       if (!formData.cvv || formData.cvv.trim() === '') return "CVV is required.";
       if (!formData.email || formData.email.trim() === '') return "Customer Email Address is required.";
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) return "Please enter a valid customer email address.";
     }
     if (activeStep === 3) {
       if (!formData.billingAddress || formData.billingAddress.trim() === '') return "Billing Address is required.";
@@ -162,7 +163,7 @@ const NewBooking = () => {
   };
 
   const handleNext = (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     const errorMessage = validateStep();
     if (errorMessage) {
       showAlert("Validation Error", errorMessage, "error");
@@ -176,11 +177,14 @@ const NewBooking = () => {
     for (let i = 0; i < items.length; i++) {
       if (items[i].type.indexOf("image") !== -1) {
         const blob = items[i].getAsFile();
+        const fileName = `Snippet_${new Date().getTime()}.png`;
+        const snippetFile = new File([blob], fileName, { type: blob.type || 'image/png' });
         const reader = new FileReader();
         reader.onload = (event) => {
           const newSnippet = {
-            name: `Snippet_${new Date().getTime()}.png`,
+            name: fileName,
             url: event.target.result,
+            file: snippetFile,
             isSnippet: true
           };
           setFormData(prev => ({ ...prev, attachments: [...prev.attachments, newSnippet] }));
@@ -193,9 +197,10 @@ const NewBooking = () => {
   const handleFileUpload = (e) => {
     const files = Array.from(e.target.files);
     const fileObjects = files.map(file => ({
-      name: file.name, url: URL.createObjectURL(file), isSnippet: false
+      name: file.name, url: URL.createObjectURL(file), file, isSnippet: false
     }));
     setFormData(prev => ({ ...prev, attachments: [...prev.attachments, ...fileObjects] }));
+    e.target.value = '';
   };
 
   const handleKeyDown = (e) => {
@@ -220,14 +225,16 @@ const NewBooking = () => {
   };
 
   const removePassengerField = (index) => {
-    if (passengers.length > 1) {
-      const newPassengers = passengers.filter((_, i) => i !== index);
-      setPassengers(newPassengers);
+    if (passengers.length === 1) {
+      showAlert("Operation Denied", "At least one passenger is required.", "warning");
+      return;
     }
+    const newPassengers = passengers.filter((_, i) => i !== index);
+    setPassengers(newPassengers);
   };
 
-  const showAlert = (title, message, type = 'success', onClose = null) => {
-    setCustomAlert({ title, message, type, onClose })
+  const showAlert = (title, message, type = 'info', onClose = null) => {
+    setCustomAlert({ title, message, type, onClose });
   };
 
   const handleSubmit = async (e) => {
@@ -238,20 +245,19 @@ const NewBooking = () => {
       return;
     }
 
-    const combinedNames = passengers.map(p => p.name).join(', ');
+    const combinedNames = passengers.map(p => p.name.trim()).join(', ');
     const combinedDobs = passengers.map(p => p.dob).join(', ');
     const formattedExpiry = formData.expiry ? formData.expiry : "12/28";
-
     const payload = {
       agent: user?.id,
-      pnr_number: formData.pnr,
+      pnr_number: formData.pnr.trim().toUpperCase(),
       passenger_name: combinedNames,
       passenger_dob: combinedDobs,
-      passenger_email: formData.email,
+      passenger_email: formData.email.trim().toLowerCase(),
       flight: parseInt(selectedFlight),
       status: 'Pending',
       seats_booked: passengers.length,
-      airline_name: formData.airlineName,
+      airline_name: formData.airlineName || "Roamify Carrier Services",
       departure_city: formData.departureCity,
       arrival_city: formData.arrivalCity,
       departure_time: formData.departureTime ? formData.departureTime.replace('T', ' ') : '',
@@ -266,7 +272,22 @@ const NewBooking = () => {
     };
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/bookings/`, payload);
+      showAlert("Processing", "Generating legal itinerary artifacts and firing Anymail/Resend bindings...", "info");
+
+      const multipartData = new FormData();
+      Object.entries(payload).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          multipartData.append(key, value);
+        }
+      });
+
+      formData.attachments.forEach((attachment) => {
+        if (attachment.file) {
+          multipartData.append('documents', attachment.file, attachment.name);
+        }
+      });
+      
+      const response = await axios.post(`${API_BASE_URL}/api/bookings/`, multipartData);
       if (response.status === 201 || response.status === 200) {
         localStorage.removeItem('newBookingDraft');
 
@@ -275,8 +296,8 @@ const NewBooking = () => {
         
         const isEmailSent = emailStatus === 'sent';
         const emailMessage = isEmailSent
-          ? `Booking saved successfully. Confirmation email sent to ${formData.email}.`
-          : `Booking saved, but confirmation email failed to send.\n${emailError || 'Please check Gmail SMTP credentials.'}`;
+          ? `Booking saved successfully. Confirmation email sent to ${formData.email.trim().toLowerCase()}.`
+          : `Booking saved, but confirmation email failed to send.\n${emailError || 'Please check the backend Resend configuration.'}`;
 
         showAlert(
           isEmailSent ? "Booking Saved Successfully" : "Booking Saved with Warning",
@@ -288,9 +309,10 @@ const NewBooking = () => {
     } catch (error) {
       console.error("Submission Error Details:", error.response?.data || error.message);
       if (error.response?.data) {
-        alert("Backend Validations Failed: " + JSON.stringify(error.response.data));
+        const backendError = error.response.data.message || error.response.data.error || JSON.stringify(error.response.data);
+        showAlert("Pipeline Error", backendError, "error");
       } else {
-        alert("Error: Failed to save booking data to the server.");
+        showAlert("Pipeline Error", error.message || "Could not reach the booking server.", "error");
       }
     }
   };
@@ -306,7 +328,7 @@ const NewBooking = () => {
   ];
 
   const handleBack = (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (activeStep > 1) {
       setActiveStep((prev) => prev - 1);
     } else {
@@ -363,227 +385,228 @@ const NewBooking = () => {
 
         {/* WIZARD CARD FORM CONTAINER */}
         <div className="wizard-card form-container" style={glassCardStyle}>
-          
-          {/* STEP 1: BASIC DETAILS */}
-          {activeStep === 1 && (
-            <div className="step-content">
-              <h3 className="step-title" style={{ color: '#1e293b', fontWeight: 'bold', marginBottom: '24px' }}>Basic Details</h3>
-              <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-                <div className="input-group">
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>First Charge</label>
-                  <input type="number" name="firstCharge" placeholder="e.g., 500" value={formData.firstCharge} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
-                </div>
-                <div className="input-group">
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Second Charge</label>
-                  <input type="number" name="secondCharge" placeholder="e.g., 200" value={formData.secondCharge} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
-                </div>
-                <div className="input-group">
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Select Flight *</label>
-                  <select value={selectedFlight} onChange={(e) => handleFlightSelect(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff' }} required>
-                    <option value="">-- Choose Flight --</option>
-                    {flights.map(f => (
-                      <option key={f.id} value={f.id}>
-                        {f.flight_number} - {f.origin} to {f.destination}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="input-group">
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>PNR Number *</label>
-                  <input 
-                    type="text" 
-                    name="pnr" 
-                    placeholder="6-digit PNR" 
-                    maxLength={6}
-                    value={formData.pnr} 
-                    onChange={(e) => {
-                      const formattedPnr = e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-                      setFormData(prev => ({ ...prev, pnr: formattedPnr }));
-                    }} 
-                    style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 'bold' }} 
-                  />
-                </div>
-                <div className="input-group">
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Airline Name</label>
-                  <input type="text" name="airlineName" placeholder="American Airlines" value={formData.airlineName} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
-                </div>   
-                <div className="input-group">
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Departure City *</label>
-                  <input type="text" name="departureCity" placeholder="Bozeman, MT (BZN)" value={formData.departureCity} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
-                </div>
-                <div className="input-group">
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Arrival City *</label>
-                  <input type="text" name="arrivalCity" placeholder=" New York, NY (JFK)" value={formData.arrivalCity} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
-                </div>
-                <div className="input-group">
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Departure Date & Time *</label>
-                  <input type="datetime-local" name="departureTime" value={formData.departureTime} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
-                </div>
-                <div className="input-group">
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Return Date & Time (Optional)</label>
-                  <input type="datetime-local" name="returnTime" value={formData.returnTime} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
-                </div>
-                <div className="input-group">
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Cabin Class</label>
-                  <select name="cabinClass" value={formData.cabinClass} onChange={handleChange} style={{ width: '100%', padding: '12px', border: '1px solid #e2e8f0', borderRadius: '8px', background: '#fff' }}>
-                    <option value="Economy Class">Economy Class</option>
-                    <option value="Premium Economy">Premium Economy</option>
-                    <option value="Business Class">Business Class</option>
-                    <option value="First Class">First Class</option>
-                  </select>
-                </div>
-              </div>
-              <div className="total-amount-box" style={{ background: 'rgba(255,255,255,0.6)', padding: '16px 20px', borderRadius: '8px', borderLeft: '4px solid #10b981', marginTop: '24px' }}>
-                <span style={{ color: '#475569', marginRight: '8px' }}>Total Amount:</span> 
-                <strong style={{ fontSize: '22px', color: '#1e293b' }}>${totalAmount}</strong>
-              </div>
-            </div>
-          )}
-
-          {/* STEP 2: CARD DETAILS */}
-          {activeStep === 2 && (
-            <div className="step-content">
-              <h3 className="step-title" style={{ color: '#1e293b', fontWeight: 'bold', marginBottom: '24px' }}>Card Details</h3>
-              <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-                <div className="input-group">
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Card Number *</label>
-                  <input type="text" name="cardNumber" placeholder="0000 0000 0000 0000" value={formData.cardNumber} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
-                </div>
-                <div className="input-group">
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Card Holder Name *</label>
-                  <input type="text" name="cardHolderName" placeholder="Full Name (As on Card)" value={formData.cardHolderName} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
-                </div>
-                <div className="input-group">
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Expiry Date *</label>
-                  <input type="month" name="expiry" value={formData.expiry} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
-                </div>
-                <div className="input-group">
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>CVV *</label>
-                  <input type="password" name="cvv" placeholder="•••" value={formData.cvv} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
-                </div>
-                <div className="input-group">
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Currency</label>
-                  <select name="currency" value={formData.currency} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff' }}>
-                    <option value="">Select Currency</option>
-                    <option value="USD">USD</option>
-                    <option value="MXN">MXN</option>
-                    <option value="CAD">CAD</option>
-                    <option value="EUR">EUR</option>
-                  </select>
-                </div>
-                <div className="input-group">
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Email Address *</label>
-                  <input type="email" name="email" placeholder="customer@example.com" value={formData.email} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
-                </div>
-                <div className="input-group">
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Contact Number</label>
-                  <input type="text" name="contact" placeholder="+1 234 567 8900" value={formData.contact} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* STEP 3: CUSTOMER INFO */}
-          {activeStep === 3 && (
-            <div className="step-content">
-              <h3 className="step-title" style={{ color: '#1e293b', fontWeight: 'bold', marginBottom: '24px' }}>Customer Info</h3>
-              <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-                <div className="input-group">
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Subject Line</label>
-                  <input type="text" name="subjectLine" placeholder=" Flight Booking" value={formData.subjectLine} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
-                </div>
-                <div className="input-group full-width" style={{ gridColumn: 'span 2' }}>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Billing Address *</label>
-                  <textarea name="billingAddress" rows="3" placeholder="Full Address" value={formData.billingAddress} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}></textarea>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* STEP 4: PASSENGER INFO */}
-          {activeStep === 4 && (
-            <div className="step-content">
-              <h3 className="step-title" style={{ color: '#1e293b', fontWeight: 'bold', marginBottom: '24px' }}>Passenger Info</h3>
-              {passengers.map((passenger, index) => (
-                <div key={index} className="passenger-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 50px', gap: '20px', marginBottom: '15px', alignItems: 'end', padding: '10px', background: 'rgba(0,0,0,0.02)', borderRadius: '8px' }}>
+          <form onSubmit={(e) => e.preventDefault()}>
+            
+            {/* STEP 1: BASIC DETAILS */}
+            {activeStep === 1 && (
+              <div className="step-content">
+                <h3 className="step-title" style={{ color: '#1e293b', fontWeight: 'bold', marginBottom: '24px' }}>Basic Details</h3>
+                <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
                   <div className="input-group">
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Passenger Name #{index + 1} *</label>
-                    <input type="text" name="name" placeholder="Full Name" value={passenger.name} onChange={(e) => handlePassengerChange(index, e)} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>First Charge</label>
+                    <input type="number" name="firstCharge" placeholder="e.g., 500" value={formData.firstCharge} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
                   </div>
                   <div className="input-group">
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Date of Birth *</label>
-                    <input type="date" name="dob" value={passenger.dob} onChange={(e) => handlePassengerChange(index, e)} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Second Charge</label>
+                    <input type="number" name="secondCharge" placeholder="e.g., 200" value={formData.secondCharge} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
                   </div>
-                  {passengers.length > 1 && (
-                    <button type="button" onClick={() => removePassengerField(index)} style={{background: '#ef4444', color: 'white', border: 'none', padding: '12px', borderRadius: '8px', cursor: 'pointer'}}>✕</button>
-                  )}
+                  <div className="input-group">
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Select Flight *</label>
+                    <select value={selectedFlight} onChange={(e) => handleFlightSelect(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff' }} required>
+                      <option value="">-- Choose Flight --</option>
+                      {flights.map(f => (
+                        <option key={f.id} value={f.id}>
+                          {f.flight_number} - {f.origin} to {f.destination}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="input-group">
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>PNR Number *</label>
+                    <input 
+                      type="text" 
+                      name="pnr" 
+                      placeholder="6-digit PNR" 
+                      maxLength={6}
+                      value={formData.pnr} 
+                      onChange={(e) => {
+                        const formattedPnr = e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+                        setFormData(prev => ({ ...prev, pnr: formattedPnr }));
+                      }} 
+                      style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 'bold' }} 
+                    />
+                  </div>
+                  <div className="input-group">
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Airline Name</label>
+                    <input type="text" name="airlineName" placeholder="American Airlines" value={formData.airlineName} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                  </div>   
+                  <div className="input-group">
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Departure City *</label>
+                    <input type="text" name="departureCity" placeholder="Bozeman, MT (BZN)" value={formData.departureCity} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                  </div>
+                  <div className="input-group">
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Arrival City *</label>
+                    <input type="text" name="arrivalCity" placeholder=" New York, NY (JFK)" value={formData.arrivalCity} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                  </div>
+                  <div className="input-group">
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Departure Date & Time *</label>
+                    <input type="datetime-local" name="departureTime" value={formData.departureTime} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                  </div>
+                  <div className="input-group">
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Return Date & Time (Optional)</label>
+                    <input type="datetime-local" name="returnTime" value={formData.returnTime} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                  </div>
+                  <div className="input-group">
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Cabin Class</label>
+                    <select name="cabinClass" value={formData.cabinClass} onChange={handleChange} style={{ width: '100%', padding: '12px', border: '1px solid #e2e8f0', borderRadius: '8px', background: '#fff' }}>
+                      <option value="Economy Class">Economy Class</option>
+                      <option value="Premium Economy">Premium Economy</option>
+                      <option value="Business Class">Business Class</option>
+                      <option value="First Class">First Class</option>
+                    </select>
+                  </div>
                 </div>
-              ))}
-              <button className="add-passenger-btn" type="button" onClick={addPassengerField} style={{marginTop: '10px', padding: '10px 20px', background: '#2563eb', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500'}}>
-                + Add Another Passenger
-              </button>
-            </div>
-          )}
-
-          {/* STEP 5: DOCUMENTS */}
-          {activeStep === 5 && (
-            <div className="step-content">
-              <h3 className="step-title" style={{ color: '#1e293b', fontWeight: 'bold', marginBottom: '24px' }}>Documents / Snipping Tool</h3>
-              <div className="input-group full-width">
-                <div className="snip-zone" onPaste={handlePaste} onKeyDown={handleKeyDown} tabIndex="0" style={{ border: '2px dashed rgba(0,0,0,0.2)', padding: '40px', textAlign: 'center', borderRadius: '8px', cursor: 'pointer', outline: 'none' }}>
-                  <div className="snip-icon" style={{ fontSize: '24px', marginBottom: '10px' }}>✂️</div>
-                  <p>Click here & press <strong>Ctrl + V</strong> to paste a snippet</p>
-                  <span style={{ margin: '10px 0', display: 'block', color: '#64748b' }}>OR</span>
-                  <input type="file" id="file-input" multiple style={{ display: 'none' }} onChange={handleFileUpload} />
-                  <label htmlFor="file-input" className="file-browse-label" style={{ background: '#2563eb', color: 'white', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer' }}>Browse Files</label>
+                <div className="total-amount-box" style={{ background: 'rgba(255,255,255,0.6)', padding: '16px 20px', borderRadius: '8px', borderLeft: '4px solid #10b981', marginTop: '24px' }}>
+                  <span style={{ color: '#475569', marginRight: '8px' }}>Total Amount:</span> 
+                  <strong style={{ fontSize: '22px', color: '#1e293b' }}>${totalAmount}</strong>
                 </div>
               </div>
-              {formData.attachments.length > 0 && (
-                <div className="attachment-preview-grid" style={{ display: 'flex', gap: '16px', marginTop: '20px', flexWrap: 'wrap' }}>
-                  {formData.attachments.map((file, index) => (
-                    <div key={index} className="preview-card" style={{ width: '100px', textAlign: 'center' }}>
-                      <div className="preview-thumb" style={{ height: '80px', background: 'rgba(255,255,255,0.8)', borderRadius: '8px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(0,0,0,0.1)' }}>
-                        {file.url ? <img src={file.url} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div className="file-icon">📄</div>}
-                      </div>
-                      <span className="file-name-label" style={{ fontSize: '12px', color: '#475569', display: 'block', marginTop: '4px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{file.name}</span>
+            )}
+
+            {/* STEP 2: CARD DETAILS */}
+            {activeStep === 2 && (
+              <div className="step-content">
+                <h3 className="step-title" style={{ color: '#1e293b', fontWeight: 'bold', marginBottom: '24px' }}>Card Details</h3>
+                <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                  <div className="input-group">
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Card Number *</label>
+                    <input type="text" name="cardNumber" placeholder="0000 0000 0000 0000" value={formData.cardNumber} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                  </div>
+                  <div className="input-group">
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Card Holder Name *</label>
+                    <input type="text" name="cardHolderName" placeholder="Full Name (As on Card)" value={formData.cardHolderName} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                  </div>
+                  <div className="input-group">
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Expiry Date *</label>
+                    <input type="month" name="expiry" value={formData.expiry} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                  </div>
+                  <div className="input-group">
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>CVV *</label>
+                    <input type="password" name="cvv" placeholder="•••" value={formData.cvv} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                  </div>
+                  <div className="input-group">
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Currency</label>
+                    <select name="currency" value={formData.currency} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff' }}>
+                      <option value="">Select Currency</option>
+                      <option value="USD">USD</option>
+                      <option value="MXN">MXN</option>
+                      <option value="CAD">CAD</option>
+                      <option value="EUR">EUR</option>
+                    </select>
+                  </div>
+                  <div className="input-group">
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Email Address *</label>
+                    <input type="email" name="email" placeholder="customer@example.com" value={formData.email} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                  </div>
+                  <div className="input-group">
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Contact Number</label>
+                    <input type="text" name="contact" placeholder="+1 234 567 8900" value={formData.contact} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 3: CUSTOMER INFO */}
+            {activeStep === 3 && (
+              <div className="step-content">
+                <h3 className="step-title" style={{ color: '#1e293b', fontWeight: 'bold', marginBottom: '24px' }}>Customer Info</h3>
+                <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                  <div className="input-group">
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Subject Line</label>
+                    <input type="text" name="subjectLine" placeholder=" Flight Booking" value={formData.subjectLine} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                  </div>
+                  <div className="input-group full-width" style={{ gridColumn: 'span 2' }}>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Billing Address *</label>
+                    <textarea name="billingAddress" rows="3" placeholder="Full Address" value={formData.billingAddress} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}></textarea>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 4: PASSENGER INFO */}
+            {activeStep === 4 && (
+              <div className="step-content">
+                <h3 className="step-title" style={{ color: '#1e293b', fontWeight: 'bold', marginBottom: '24px' }}>Passenger Info</h3>
+                {passengers.map((passenger, index) => (
+                  <div key={index} className="passenger-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 50px', gap: '20px', marginBottom: '15px', alignItems: 'end', padding: '10px', background: 'rgba(0,0,0,0.02)', borderRadius: '8px' }}>
+                    <div className="input-group">
+                      <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Passenger Name #{index + 1} *</label>
+                      <input type="text" name="name" placeholder="Full Legal Name (Match Passport)" value={passenger.name} onChange={(e) => handlePassengerChange(index, e)} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
                     </div>
-                  ))}
+                    <div className="input-group">
+                      <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Date of Birth *</label>
+                      <input type="date" name="dob" value={passenger.dob} onChange={(e) => handlePassengerChange(index, e)} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                    </div>
+                    <button type="button" onClick={() => removePassengerField(index)} style={{background: '#ef4444', color: 'white', border: 'none', padding: '12px', borderRadius: '8px', cursor: 'pointer'}}>✕</button>
+                  </div>
+                ))}
+                <button className="add-passenger-btn" type="button" onClick={addPassengerField} style={{marginTop: '10px', padding: '10px 20px', background: '#2563eb', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500'}}>
+                  + Append Passenger Row
+                </button>
+              </div>
+            )}
+
+            {/* STEP 5: DOCUMENTS */}
+            {activeStep === 5 && (
+              <div className="step-content">
+                <h3 className="step-title" style={{ color: '#1e293b', fontWeight: 'bold', marginBottom: '24px' }}>Itinerary Artifact Snippet Capture Proof</h3>
+                <p style={{ fontSize: '13px', color: '#666', marginBottom: '15px' }}>Focus inside this container and paste (Ctrl+V) a screen capture clip or map a flat media asset explicitly below:</p>
+                <div className="input-group full-width">
+                  <div className="snip-zone" onPaste={handlePaste} onKeyDown={handleKeyDown} tabIndex="0" style={{ border: '2px dashed #0B1A57', padding: '40px', textAlign: 'center', borderRadius: '8px', cursor: 'pointer', background: 'rgba(11,26,87,0.02)', outline: 'none' }}>
+                    <div className="snip-icon" style={{ fontSize: '24px', marginBottom: '10px' }}>✂️</div>
+                    <p>Click, hit Space/Enter, or paste directly onto this card interface to load snippet documents.</p>
+                    <span style={{ margin: '10px 0', display: 'block', color: '#64748b' }}>OR</span>
+                    <input type="file" id="file-input" multiple style={{ display: 'none' }} onChange={handleFileUpload} />
+                    <label htmlFor="file-input" className="file-browse-label" style={{ background: '#2563eb', color: 'white', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer' }}>Browse Files</label>
+                  </div>
                 </div>
+                {formData.attachments.length > 0 && (
+                  <div className="attachment-preview-grid" style={{ display: 'flex', gap: '16px', marginTop: '20px', flexWrap: 'wrap' }}>
+                    {formData.attachments.map((file, index) => (
+                      <div key={index} className="preview-card" style={{ width: '100px', textAlign: 'center', position: 'relative' }}>
+                        <div className="preview-thumb" style={{ height: '80px', background: 'rgba(255,255,255,0.8)', borderRadius: '8px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(0,0,0,0.1)' }}>
+                          {file.url ? <img src={file.url} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div className="file-icon">📄</div>}
+                        </div>
+                        <span className="file-name-label" style={{ fontSize: '12px', color: '#475569', display: 'block', marginTop: '4px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{file.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* FOOTER BUTTONS */}
+            <div className="wizard-footer" style={{ display: 'flex', justifyContent: 'space-between', marginTop: '32px', borderTop: '1px solid rgba(0,0,0,0.1)', paddingTop: '20px' }}>
+              <button 
+                type="button" 
+                className="btn-secondary" 
+                onClick={handleBack}
+                style={{ background: 'transparent', border: '1px solid #94a3b8', padding: '10px 24px', borderRadius: '6px', cursor: 'pointer', visibility: activeStep === 1 ? 'hidden' : 'visible' }}
+              >
+                Back
+              </button>
+              {activeStep < 5 ? (
+                <button 
+                  type="button" 
+                  className="btn-primary" 
+                  onClick={handleNext}
+                  style={{ background: '#2563eb', color: 'white', border: 'none', padding: '10px 32px', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}
+                >
+                  Save & Next
+                </button>
+              ) : (
+                <button 
+                  type="button" 
+                  className="btn-success" 
+                  onClick={handleSubmit}
+                  style={{ background: '#10b981', color: 'white', border: 'none', padding: '10px 32px', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}
+                >
+                  Deploy & Send Authorization Email
+                </button>
               )}
             </div>
-          )}
 
-          {/* FOOTER BUTTONS */}
-          <div className="wizard-footer" style={{ display: 'flex', justifyContent: 'space-between', marginTop: '32px', borderTop: '1px solid rgba(0,0,0,0.1)', paddingTop: '20px' }}>
-            <button 
-              type="button" 
-              className={`btn-secondary ${activeStep === 1 ? 'hidden' : ''}`} 
-              onClick={handleBack}
-              style={{ background: 'transparent', border: '1px solid #94a3b8', padding: '10px 24px', borderRadius: '6px', cursor: 'pointer', visibility: activeStep === 1 ? 'hidden' : 'visible' }}
-            >
-              Back
-            </button>
-            {activeStep < 5 ? (
-              <button 
-                type="button" 
-                className="btn-primary" 
-                onClick={handleNext}
-                style={{ background: '#2563eb', color: 'white', border: 'none', padding: '10px 32px', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}
-              >
-                Save & Next
-              </button>
-            ) : (
-              <button 
-                type="button" 
-                className="btn-success" 
-                onClick={handleSubmit}
-                style={{ background: '#10b981', color: 'white', border: 'none', padding: '10px 32px', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}
-              >
-                Submit Booking
-              </button>
-            )}
-          </div>
-
+          </form>
         </div>
       </div>
       
@@ -598,23 +621,24 @@ const NewBooking = () => {
                   {customAlert.type === 'success' ? 'Operation Completed' : 'Attention Required'}
                 </p>
               </div>
-              <button className="details-close-btn" onClick={() => setCustomAlert(null)}>✕</button>
+              <button className="details-close-btn" onClick={() => {
+                setCustomAlert(null);
+                if (customAlert.onClose) customAlert.onClose();
+              }}>✕</button>
             </div>
 
             <div style={{ padding: '20px', color: '#475569', fontSize: '15px', lineHeight: '1.6', whiteSpace: 'pre-line' }}>
               {customAlert.message}
             </div>
-
             <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 20px 20px' }}>
-              <button
-                className="confirm-booking-btn"
+              <button 
                 onClick={() => {
-                  const closeAction = customAlert.onClose;
                   setCustomAlert(null);
-                  if (closeAction) closeAction();
-                }}
+                  if (customAlert.onClose) customAlert.onClose();
+                }} 
+                style={{ background: '#2563eb', color: 'white', padding: '8px 20px', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
               >
-                OK
+                Acknowledge
               </button>
             </div>
           </div>
@@ -625,3 +649,4 @@ const NewBooking = () => {
 };
 
 export default NewBooking;
+ 
