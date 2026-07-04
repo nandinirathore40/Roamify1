@@ -399,7 +399,6 @@ const Dashboard = () => {
                         <th style={{ padding: '12px 16px' }}>SR No.</th>
                         <th style={{ padding: '12px 16px' }}>Customer Name</th>
                         <th style={{ padding: '12px 16px' }}>PNR</th>
-                        <th style={{ padding: '12px 16px' }}>Email</th>
                         <th style={{ padding: '12px 16px' }}>Authorization</th>
                         <th style={{ padding: '12px 16px' }}>Status</th>
                         <th style={{ padding: '12px 16px' }}>Action</th>
@@ -439,7 +438,6 @@ const Dashboard = () => {
                             <td style={{ padding: '16px', color: '#334155', fontSize: '13px' }}>{index + 1}</td>
                             <td style={{ padding: '16px', color: '#334155', fontWeight: '600', fontSize: '13px' }}>{b.passenger_name}</td>
                             <td style={{ padding: '16px', color: '#3b82f6', fontWeight: '700', fontSize: '13px' }}>{b.pnr_number || 'N/A'}</td>
-                            <td style={{ padding: '16px', color: '#64748b', fontSize: '13px' }}>{b.passenger_email || 'Not Provided'}</td>
                             <td style={{ padding: '16px' }}>
                               {b.is_authorized ? (
                                 <span style={{ padding: '6px 12px', borderRadius: '20px', fontSize: '11px', fontWeight: '700', background: '#dcfce7', color: '#166534' }}>Authorized</span>
