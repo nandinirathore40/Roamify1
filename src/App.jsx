@@ -10,6 +10,7 @@ import Refund from './pages/Refund'
 import AdminAccess from './pages/AdminAccess'
 import Register from './pages/Register'
 import FlightList from './components/FlightList';
+import EditBooking from './pages/EditBooking';
 import ForgotPassword from './pages/ForgotPassword'
 // Agar user logged in nahi hai, toh seedha root ("/") par wapas bhej do jahan Login page hai
 const ProtectedRoute = ({ children }) => {
@@ -31,6 +32,7 @@ function AppRoutes() {
       <Route path="/exchange" element={<ProtectedRoute><Exchange /></ProtectedRoute>} />
       <Route path="/future-credit" element={<ProtectedRoute><FutureCredit /></ProtectedRoute>} />
       <Route path="/refund" element={<ProtectedRoute><Refund /></ProtectedRoute>} />
+      <Route path="/bookings/:id/edit" element={<EditBooking />} />
       <Route path="/admin-access" element={<ProtectedRoute><AdminAccess /></ProtectedRoute>} />
       {/* 3. Fallback - Koi galat URL daale toh seedha root par bhej do */}
       <Route path="*" element={<Navigate to="/" replace />} />
