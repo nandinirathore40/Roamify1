@@ -4,6 +4,7 @@ import axios from 'axios';
 import Layout from '../components/Layout';
 import './Exchange.css';
 import './Dashboard.css';
+
 const Exchange = () => {
   const [exchangeData, setExchangeData] = useState({
     oldTicketNumber: '',
@@ -20,9 +21,19 @@ const Exchange = () => {
     exchangeReason: ''
   });
 
+  // NEW: Dynamic Flight Routing States
+  const [flightType, setFlightType] = useState('one-way');
+  const [multiCitySegments, setMultiCitySegments] = useState([
+    { depCity: '', arrCity: '', depDate: '' },
+    { depCity: '', arrCity: '', depDate: '' }
+  ]);
+
   const originalFare = 0; 
   const fareDiff = Math.max(0, exchangeData.newTicketFare - originalFare);
   const totalToCollect = Number(fareDiff) + Number(exchangeData.airlinePenalty) + Number(exchangeData.agentServiceFee) + Number(exchangeData.exchangeFee || 0);
+
+  const navigate = useNavigate();
+  const [customAlert, setCustomAlert] = useState(null);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -31,19 +42,39 @@ const Exchange = () => {
       [name]: value
     }));
   };
-  const navigate = useNavigate();
-  const [customAlert, setCustomAlert] = useState(null);
+
+  // Handlers for Multi-City logic
+  const handleSegmentChange = (index, field, value) => {
+    const newSegments = [...multiCitySegments];
+    newSegments[index][field] = value;
+    setMultiCitySegments(newSegments);
+  };
+
+  const addSegment = () => {
+    setMultiCitySegments([...multiCitySegments, { depCity: '', arrCity: '', depDate: '' }]);
+  };
+
+  const removeSegment = (index) => {
+    const newSegments = multiCitySegments.filter((_, i) => i !== index);
+    setMultiCitySegments(newSegments);
+  };
 
   const handleSubmit = async () => {
+    // UPDATED PAYLOAD FOR NEW DJANGO MODEL
     const payload = {
       old_ticket_number: exchangeData.oldTicketNumber,
       airline_name: exchangeData.airlineName,
       pnr_number: exchangeData.pnrNumber,
       exchange_fee: exchangeData.exchangeFee || 0,
-      new_departure_city: exchangeData.newDepartureCity,
-      new_arrival_city: exchangeData.newArrivalCity,
-      new_departure_date: exchangeData.newDepartureDate,
-      new_return_date: exchangeData.newReturnDate,
+      
+      // Dynamic Routing Params
+      trip_type: flightType,
+      new_departure_city: flightType !== 'multi-city' ? exchangeData.newDepartureCity : '',
+      new_arrival_city: flightType !== 'multi-city' ? exchangeData.newArrivalCity : '',
+      new_departure_date: flightType !== 'multi-city' && exchangeData.newDepartureDate ? exchangeData.newDepartureDate : null,
+      new_return_date: flightType === 'two-way' && exchangeData.newReturnDate ? exchangeData.newReturnDate : null,
+      multi_city_route: flightType === 'multi-city' ? JSON.stringify(multiCitySegments) : '',
+
       new_ticket_fare: exchangeData.newTicketFare || 0,
       airline_penalty: exchangeData.airlinePenalty || 0,
       agent_service_fee: exchangeData.agentServiceFee || 0,
@@ -53,7 +84,7 @@ const Exchange = () => {
 
     try {
       const response = await axios.post('https://flight-backend-auda.onrender.com/api/exchanges/', payload);
-      if (response.status === 201) {
+      if (response.status === 201 || response.status === 200) {
         setCustomAlert({
           title: "Exchange Processed Successfully",
           message: "Exchange request has been saved to the database.",
@@ -63,9 +94,10 @@ const Exchange = () => {
       }
     } catch (error) {
       console.error("Exchange Submission Error:", error.response?.data || error.message);
+      const backendError = error.response?.data?.message || error.response?.data?.error || "Could not save exchange request to the server.";
       setCustomAlert({
         title: "Submission Failed",
-        message: "Error: Could not save exchange request to the server.",
+        message: `Error: ${backendError}`,
         type: "error"
       });
     }
@@ -129,7 +161,10 @@ const Exchange = () => {
                   placeholder="6-digit PNR" 
                   maxLength="6"
                   value={exchangeData.pnrNumber}
-                  onChange={handleInputChange}
+                  onChange={(e) => {
+                    const formattedPnr = e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+                    setExchangeData(prev => ({ ...prev, pnrNumber: formattedPnr }));
+                  }}
                   style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', padding: '12px 16px', fontSize: '13px', color: '#334155', fontWeight: '500', textTransform: 'uppercase' }} 
                 />
               </div>
@@ -152,66 +187,115 @@ const Exchange = () => {
 
           </div>
 
-          {/* NEW FLIGHT DETAILS SECTION */}
+          {/* NEW FLIGHT DETAILS SECTION (DYNAMIC) */}
           <div>
             <h3 style={{ fontSize: '15px', color: '#0f172a', fontWeight: '700', margin: '0 0 16px 0' }}>New Flight Details</h3>
             
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-              
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>New Departure City</label>
-                <div style={{ background: '#f1f5f9', borderRadius: '10px', border: '1px solid #e2e8f0', cursor: 'text', display: 'flex', alignItems: 'center' }}>
-                  <input 
-                    type="text" 
-                    name="newDepartureCity"
-                    placeholder="Enter City" 
-                    value={exchangeData.newDepartureCity}
-                    onChange={handleInputChange}
-                    style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', padding: '12px 16px', fontSize: '13px', color: '#334155', fontWeight: '500' }} 
-                  />
-                </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
+              {/* MASTER SWITCH: TRIP TYPE */}
+              <div style={{ gridColumn: 'span 2' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#2563eb', marginBottom: '8px' }}>Trip Type</label>
+                <select 
+                  value={flightType} 
+                  onChange={(e) => setFlightType(e.target.value)} 
+                  style={{ width: '100%', padding: '12px 16px', borderRadius: '10px', border: '2px solid #3b82f6', background: '#eff6ff', color: '#1e3a8a', fontWeight: '700', outline: 'none' }}
+                >
+                  <option value="one-way">One-Way</option>
+                  <option value="two-way">Round Trip (Two-Way)</option>
+                  <option value="multi-city">Multi-City</option>
+                </select>
               </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>New Arrival City</label>
-                <div style={{ background: '#f1f5f9', borderRadius: '10px', border: '1px solid #e2e8f0', cursor: 'text', display: 'flex', alignItems: 'center' }}>
-                  <input 
-                    type="text" 
-                    name="newArrivalCity"
-                    placeholder="Enter City" 
-                    value={exchangeData.newArrivalCity}
-                    onChange={handleInputChange}
-                    style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', padding: '12px 16px', fontSize: '13px', color: '#334155', fontWeight: '500' }} 
-                  />
-                </div>
-              </div>
+              {/* CONDITIONALS BASED ON FLIGHT TYPE */}
+              {flightType !== 'multi-city' && (
+                <>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>New Departure City</label>
+                    <div style={{ background: '#f1f5f9', borderRadius: '10px', border: '1px solid #e2e8f0', cursor: 'text', display: 'flex', alignItems: 'center' }}>
+                      <input 
+                        type="text" 
+                        name="newDepartureCity"
+                        placeholder="Enter City" 
+                        value={exchangeData.newDepartureCity}
+                        onChange={handleInputChange}
+                        style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', padding: '12px 16px', fontSize: '13px', color: '#334155', fontWeight: '500' }} 
+                      />
+                    </div>
+                  </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>New Departure Date</label>
-                <div style={{ background: '#f1f5f9', borderRadius: '10px', border: '1px solid #e2e8f0', cursor: 'text', display: 'flex', alignItems: 'center' }}>
-                  <input 
-                    type="date" 
-                    name="newDepartureDate"
-                    value={exchangeData.newDepartureDate}
-                    onChange={handleInputChange}
-                    style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', padding: '12px 16px', fontSize: '13px', color: '#334155', fontWeight: '500', fontFamily: 'sans-serif' }} 
-                  />
-                </div>
-              </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>New Arrival City</label>
+                    <div style={{ background: '#f1f5f9', borderRadius: '10px', border: '1px solid #e2e8f0', cursor: 'text', display: 'flex', alignItems: 'center' }}>
+                      <input 
+                        type="text" 
+                        name="newArrivalCity"
+                        placeholder="Enter City" 
+                        value={exchangeData.newArrivalCity}
+                        onChange={handleInputChange}
+                        style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', padding: '12px 16px', fontSize: '13px', color: '#334155', fontWeight: '500' }} 
+                      />
+                    </div>
+                  </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>New Return Date</label>
-                <div style={{ background: '#f1f5f9', borderRadius: '10px', border: '1px solid #e2e8f0', cursor: 'text', display: 'flex', alignItems: 'center' }}>
-                  <input 
-                    type="date" 
-                    name="newReturnDate"
-                    value={exchangeData.newReturnDate}
-                    onChange={handleInputChange}
-                    style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', padding: '12px 16px', fontSize: '13px', color: '#334155', fontWeight: '500', fontFamily: 'sans-serif' }} 
-                  />
-                </div>
-              </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>New Departure Date</label>
+                    <div style={{ background: '#f1f5f9', borderRadius: '10px', border: '1px solid #e2e8f0', cursor: 'text', display: 'flex', alignItems: 'center' }}>
+                      <input 
+                        type="date" 
+                        name="newDepartureDate"
+                        value={exchangeData.newDepartureDate}
+                        onChange={handleInputChange}
+                        style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', padding: '12px 16px', fontSize: '13px', color: '#334155', fontWeight: '500', fontFamily: 'sans-serif' }} 
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
 
+              {flightType === 'two-way' && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>New Return Date</label>
+                  <div style={{ background: '#f1f5f9', borderRadius: '10px', border: '1px solid #e2e8f0', cursor: 'text', display: 'flex', alignItems: 'center' }}>
+                    <input 
+                      type="date" 
+                      name="newReturnDate"
+                      value={exchangeData.newReturnDate}
+                      onChange={handleInputChange}
+                      style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', padding: '12px 16px', fontSize: '13px', color: '#334155', fontWeight: '500', fontFamily: 'sans-serif' }} 
+                    />
+                  </div>
+                </div>
+              )}
+
+              {flightType === 'multi-city' && (
+                <div style={{ gridColumn: 'span 2', background: '#f8fafc', padding: '20px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                  <h4 style={{ marginBottom: '16px', color: '#0f172a', fontSize: '14px' }}>Multi-City Route Details</h4>
+                  
+                  {multiCitySegments.map((segment, index) => (
+                    <div key={index} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: '12px', marginBottom: '12px', alignItems: 'end' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '11px', color: '#64748b', marginBottom: '4px', fontWeight: '700' }}>Dep. City {index + 1}</label>
+                        <input type="text" placeholder="e.g. JFK" value={segment.depCity} onChange={(e) => handleSegmentChange(index, 'depCity', e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }} />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '11px', color: '#64748b', marginBottom: '4px', fontWeight: '700' }}>Arr. City {index + 1}</label>
+                        <input type="text" placeholder="e.g. LAX" value={segment.arrCity} onChange={(e) => handleSegmentChange(index, 'arrCity', e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }} />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '11px', color: '#64748b', marginBottom: '4px', fontWeight: '700' }}>Dep. Date</label>
+                        <input type="date" value={segment.depDate} onChange={(e) => handleSegmentChange(index, 'depDate', e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontFamily: 'sans-serif' }} />
+                      </div>
+                      {multiCitySegments.length > 2 && (
+                        <button type="button" onClick={() => removeSegment(index)} style={{ padding: '10px 14px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>
+                      )}
+                    </div>
+                  ))}
+                  
+                  <button type="button" onClick={addSegment} style={{ marginTop: '10px', padding: '10px 16px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
+                    + Add Next Flight
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -296,11 +380,11 @@ const Exchange = () => {
                   Total to Collect: <span style={{ color: '#22c55e', fontSize: '20px', fontWeight: '800', marginLeft: '6px' }}>₹{totalToCollect}</span>
                 </div>
                 <button 
-  onClick={handleSubmit}
-  style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: '10px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.25)' }}
->
-  Process Exchange
-</button>
+                  onClick={handleSubmit}
+                  style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: '10px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.25)' }}
+                >
+                  Process Exchange
+                </button>
               </div>
             </div>
 
@@ -336,6 +420,7 @@ const Exchange = () => {
                   setCustomAlert(null);
                   if (closeAction) closeAction();
                 }}
+                style={{ background: '#3b82f6', color: 'white', border: 'none', padding: '10px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
               >
                 OK
               </button>

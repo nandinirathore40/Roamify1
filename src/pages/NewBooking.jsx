@@ -8,27 +8,6 @@ import { useAuth } from '../context/AuthContext';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 
-const FALLBACK_FLIGHTS = [
-  {
-    id: 1,
-    flight_number: 'AI-101',
-    origin: 'DEL (Delhi)',
-    destination: 'BOM (Mumbai)',
-    departure_time: '2026-06-05T05:30:00Z',
-    available_seats: 180,
-    price: '5000.00'
-  },
-  {
-    id: 2,
-    flight_number: 'SK-99',
-    origin: 'JFK',
-    destination: 'LAX',
-    departure_time: '2026-05-30T01:54:57.415526Z',
-    available_seats: 60,
-    price: '698.98'
-  }
-];
-
 const getSavedDraft = () => {
   try {
     const saved = localStorage.getItem('newBookingDraft');
@@ -44,9 +23,14 @@ const NewBooking = () => {
   const savedDraft = getSavedDraft();
   
   const [activeStep, setActiveStep] = useState(savedDraft?.activeStep || 1);
-  const [flights, setFlights] = useState(FALLBACK_FLIGHTS);
-  const [selectedFlight, setSelectedFlight] = useState(savedDraft?.selectedFlight || '');
   const [passengers, setPassengers] = useState(savedDraft?.passengers || [{ name: '', dob: '' }]);
+
+  // NEW: Custom Flight Routing States
+  const [flightType, setFlightType] = useState(savedDraft?.flightType || 'one-way');
+  const [multiCitySegments, setMultiCitySegments] = useState(savedDraft?.multiCitySegments || [
+    { depCity: '', arrCity: '', depTime: '' },
+    { depCity: '', arrCity: '', depTime: '' } 
+  ]);
 
   const [formData, setFormData] = useState(savedDraft?.formData || {
     departureCity: '',
@@ -85,12 +69,13 @@ const NewBooking = () => {
   useEffect(() => {
     const draftToSave = {
       activeStep,
-      selectedFlight,
+      flightType,
+      multiCitySegments,
       passengers,
       formData: { ...formData, attachments: [] }
     };
     localStorage.setItem('newBookingDraft', JSON.stringify(draftToSave));
-  }, [activeStep, selectedFlight, passengers, formData]);
+  }, [activeStep, flightType, multiCitySegments, passengers, formData]);
 
   useEffect(() => {
     return () => {
@@ -102,45 +87,40 @@ const NewBooking = () => {
     };
   }, [formData.attachments]);
 
-  useEffect(() => {
-    axios.get(`${API_BASE_URL}/api/flights/`)
-      .then(res => {
-        const apiFlights = Array.isArray(res.data) ? res.data : [];
-        setFlights(apiFlights.length > 0 ? apiFlights : FALLBACK_FLIGHTS);
-      })
-      .catch(err => {
-        console.error("Flights fetch error:", err);
-        setFlights(FALLBACK_FLIGHTS);
-      });
-  }, []);
-
-  const handleFlightSelect = (flightId) => {
-    setSelectedFlight(flightId);
-    const flight = flights.find(item => String(item.id) === String(flightId));
-    if (!flight) return;
-
-    let rawTime = flight.departure_time || '';
-    if (rawTime.includes('Z')) {
-      rawTime = rawTime.split('Z')[0];
-    }
-    const inputTime = rawTime.replace(' ', 'T').slice(0, 16);
-
-    setFormData(prev => ({
-      ...prev,
-      departureCity: prev.departureCity || flight.origin || '',
-      arrivalCity: prev.arrivalCity || flight.destination || '',
-      departureTime: inputTime
-    }));
+  // NEW: Handlers for Multi-City logic
+  const handleSegmentChange = (index, field, value) => {
+    const newSegments = [...multiCitySegments];
+    newSegments[index][field] = value;
+    setMultiCitySegments(newSegments);
   };
 
-  // 🛑 STRICT VALIDATION LOGIC
+  const addSegment = () => {
+    setMultiCitySegments([...multiCitySegments, { depCity: '', arrCity: '', depTime: '' }]);
+  };
+
+  const removeSegment = (index) => {
+    const newSegments = multiCitySegments.filter((_, i) => i !== index);
+    setMultiCitySegments(newSegments);
+  };
+
+  // 🛑 STRICT VALIDATION LOGIC UPDATED
   const validateStep = () => {
     if (activeStep === 1) {
-      if (!selectedFlight || String(selectedFlight).trim() === '') return "Please select a flight.";
       if (!formData.pnr || formData.pnr.trim() === '') return "PNR Number is required.";
       if (formData.pnr.trim().length !== 6) return "PNR Number must be exactly 6 characters long.";
-      if (!formData.departureCity || formData.departureCity.trim() === '' || !formData.arrivalCity || formData.arrivalCity.trim() === '') return "Departure and Arrival cities are required.";
-      if (!formData.departureTime || formData.departureTime.trim() === '') return "Departure Date & Time is required.";
+      
+      // Dynamic validation based on flight type
+      if (flightType === 'multi-city') {
+        for (let i = 0; i < multiCitySegments.length; i++) {
+          if (!multiCitySegments[i].depCity || !multiCitySegments[i].arrCity || !multiCitySegments[i].depTime) {
+            return `Please fill all details for Multi-City Route #${i + 1}.`;
+          }
+        }
+      } else {
+        if (!formData.departureCity || formData.departureCity.trim() === '' || !formData.arrivalCity || formData.arrivalCity.trim() === '') return "Departure and Arrival cities are required.";
+        if (!formData.departureTime || formData.departureTime.trim() === '') return "Departure Date & Time is required.";
+        if (flightType === 'two-way' && (!formData.returnTime || formData.returnTime.trim() === '')) return "Return Date & Time is required for Round Trips.";
+      }
     }
     if (activeStep === 2) {
       if (!formData.cardNumber || formData.cardNumber.trim() === '') return "Card Number is required.";
@@ -248,27 +228,32 @@ const NewBooking = () => {
     const combinedNames = passengers.map(p => p.name.trim()).join(', ');
     const combinedDobs = passengers.map(p => p.dob).join(', ');
     const formattedExpiry = formData.expiry ? formData.expiry : "12/28";
+    
+    // UPDATED PAYLOAD FOR DJANGO
     const payload = {
       agent: user?.id,
       pnr_number: formData.pnr.trim().toUpperCase(),
       passenger_name: combinedNames,
       passenger_dob: combinedDobs,
       passenger_email: formData.email.trim().toLowerCase(),
-      flight: parseInt(selectedFlight),
       status: 'Pending',
       seats_booked: passengers.length,
       airline_name: formData.airlineName || "Roamify Carrier Services",
-      departure_city: formData.departureCity,
-      arrival_city: formData.arrivalCity,
-      departure_time: formData.departureTime ? formData.departureTime.replace('T', ' ') : '',
-      return_time: formData.returnTime ? formData.returnTime.replace('T', ' ') : '',
       cabin_class: formData.cabinClass,
       card_holder_name: formData.cardHolderName,
       card_number: formData.cardNumber,
       card_type: formData.currency === 'USD' ? 'Visa' : 'Mastercard',
       expiry_date: formattedExpiry,
       billing_address: formData.billingAddress,
-      total_amount: String(totalAmount)
+      total_amount: String(totalAmount),
+      
+      // New custom route parameters
+      trip_type: flightType,
+      departure_city: flightType !== 'multi-city' ? formData.departureCity : '',
+      arrival_city: flightType !== 'multi-city' ? formData.arrivalCity : '',
+      departure_time: flightType !== 'multi-city' && formData.departureTime ? formData.departureTime.replace('T', ' ') : '',
+      return_time: flightType === 'two-way' && formData.returnTime ? formData.returnTime.replace('T', ' ') : '',
+      multi_city_route: flightType === 'multi-city' ? JSON.stringify(multiCitySegments) : ''
     };
 
     try {
@@ -276,7 +261,7 @@ const NewBooking = () => {
 
       const multipartData = new FormData();
       Object.entries(payload).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
+        if (value !== undefined && value !== null && value !== '') {
           multipartData.append(key, value);
         }
       });
@@ -392,25 +377,8 @@ const NewBooking = () => {
               <div className="step-content">
                 <h3 className="step-title" style={{ color: '#1e293b', fontWeight: 'bold', marginBottom: '24px' }}>Basic Details</h3>
                 <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-                  <div className="input-group">
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>First Charge</label>
-                    <input type="number" name="firstCharge" placeholder="e.g., 500" value={formData.firstCharge} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
-                  </div>
-                  <div className="input-group">
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Second Charge</label>
-                    <input type="number" name="secondCharge" placeholder="e.g., 200" value={formData.secondCharge} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
-                  </div>
-                  <div className="input-group">
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Select Flight *</label>
-                    <select value={selectedFlight} onChange={(e) => handleFlightSelect(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff' }} required>
-                      <option value="">-- Choose Flight --</option>
-                      {flights.map(f => (
-                        <option key={f.id} value={f.id}>
-                          {f.flight_number} - {f.origin} to {f.destination}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  
+                  {/* PNR - Moved to top for consistency */}
                   <div className="input-group">
                     <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>PNR Number *</label>
                     <input 
@@ -426,26 +394,26 @@ const NewBooking = () => {
                       style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 'bold' }} 
                     />
                   </div>
+
+                  {/* FLIGHT TYPE MASTER SWITCH */}
+                  <div className="input-group">
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#2563eb', marginBottom: '8px' }}>Trip Type *</label>
+                    <select 
+                      value={flightType} 
+                      onChange={(e) => setFlightType(e.target.value)} 
+                      style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '2px solid #3b82f6', background: '#eff6ff', fontWeight: 'bold' }}
+                    >
+                      <option value="one-way">One-Way</option>
+                      <option value="two-way">Round Trip (Two-Way)</option>
+                      <option value="multi-city">Multi-City</option>
+                    </select>
+                  </div>
+
                   <div className="input-group">
                     <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Airline Name</label>
-                    <input type="text" name="airlineName" placeholder="American Airlines" value={formData.airlineName} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                    <input type="text" name="airlineName" placeholder="e.g., American Airlines" value={formData.airlineName} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
                   </div>   
-                  <div className="input-group">
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Departure City *</label>
-                    <input type="text" name="departureCity" placeholder="Bozeman, MT (BZN)" value={formData.departureCity} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
-                  </div>
-                  <div className="input-group">
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Arrival City *</label>
-                    <input type="text" name="arrivalCity" placeholder=" New York, NY (JFK)" value={formData.arrivalCity} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
-                  </div>
-                  <div className="input-group">
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Departure Date & Time *</label>
-                    <input type="datetime-local" name="departureTime" value={formData.departureTime} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
-                  </div>
-                  <div className="input-group">
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Return Date & Time (Optional)</label>
-                    <input type="datetime-local" name="returnTime" value={formData.returnTime} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
-                  </div>
+                  
                   <div className="input-group">
                     <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Cabin Class</label>
                     <select name="cabinClass" value={formData.cabinClass} onChange={handleChange} style={{ width: '100%', padding: '12px', border: '1px solid #e2e8f0', borderRadius: '8px', background: '#fff' }}>
@@ -455,6 +423,73 @@ const NewBooking = () => {
                       <option value="First Class">First Class</option>
                     </select>
                   </div>
+
+                  {/* CONDITIONALS BASED ON FLIGHT TYPE */}
+                  
+                  {flightType !== 'multi-city' && (
+                    <>
+                      <div className="input-group">
+                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Departure City *</label>
+                        <input type="text" name="departureCity" placeholder="Bozeman, MT (BZN)" value={formData.departureCity} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                      </div>
+                      <div className="input-group">
+                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Arrival City *</label>
+                        <input type="text" name="arrivalCity" placeholder=" New York, NY (JFK)" value={formData.arrivalCity} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                      </div>
+                      <div className="input-group">
+                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Departure Date & Time *</label>
+                        <input type="datetime-local" name="departureTime" value={formData.departureTime} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                      </div>
+                    </>
+                  )}
+
+                  {flightType === 'two-way' && (
+                    <div className="input-group">
+                      <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Return Date & Time *</label>
+                      <input type="datetime-local" name="returnTime" value={formData.returnTime} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                    </div>
+                  )}
+
+                  {flightType === 'multi-city' && (
+                    <div className="input-group full-width" style={{ gridColumn: 'span 2', background: '#f8fafc', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                      <h4 style={{ marginBottom: '16px', color: '#0f172a' }}>Multi-City Route Details</h4>
+                      
+                      {multiCitySegments.map((segment, index) => (
+                        <div key={index} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: '12px', marginBottom: '12px', alignItems: 'end' }}>
+                          <div>
+                            <label style={{ display: 'block', fontSize: '11px', color: '#64748b', marginBottom: '4px' }}>Dep. City {index + 1}</label>
+                            <input type="text" placeholder="e.g. JFK" value={segment.depCity} onChange={(e) => handleSegmentChange(index, 'depCity', e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+                          </div>
+                          <div>
+                            <label style={{ display: 'block', fontSize: '11px', color: '#64748b', marginBottom: '4px' }}>Arr. City {index + 1}</label>
+                            <input type="text" placeholder="e.g. LAX" value={segment.arrCity} onChange={(e) => handleSegmentChange(index, 'arrCity', e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+                          </div>
+                          <div>
+                            <label style={{ display: 'block', fontSize: '11px', color: '#64748b', marginBottom: '4px' }}>Dep. Time</label>
+                            <input type="datetime-local" value={segment.depTime} onChange={(e) => handleSegmentChange(index, 'depTime', e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+                          </div>
+                          {multiCitySegments.length > 2 && (
+                            <button type="button" onClick={() => removeSegment(index)} style={{ padding: '10px 14px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>✕</button>
+                          )}
+                        </div>
+                      ))}
+                      
+                      <button type="button" onClick={addSegment} style={{ marginTop: '10px', padding: '8px 16px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>
+                        + Add Next Flight
+                      </button>
+                    </div>
+                  )}
+
+                  {/* PRICING */}
+                  <div className="input-group">
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>First Charge (Base)</label>
+                    <input type="number" name="firstCharge" placeholder="e.g., 500" value={formData.firstCharge} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                  </div>
+                  <div className="input-group">
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Second Charge (Fees/Taxes)</label>
+                    <input type="number" name="secondCharge" placeholder="e.g., 200" value={formData.secondCharge} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                  </div>
+
                 </div>
                 <div className="total-amount-box" style={{ background: 'rgba(255,255,255,0.6)', padding: '16px 20px', borderRadius: '8px', borderLeft: '4px solid #10b981', marginTop: '24px' }}>
                   <span style={{ color: '#475569', marginRight: '8px' }}>Total Amount:</span> 
@@ -649,4 +684,3 @@ const NewBooking = () => {
 };
 
 export default NewBooking;
- 
