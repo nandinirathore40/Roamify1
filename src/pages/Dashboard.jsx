@@ -7,6 +7,8 @@ import { useNavigate } from 'react-router-dom';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://flight-backend-auda.onrender.com';
 
+import API from '../api'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 const RevenueOverviewChart = () => {
   return (
     <div style={{ width: '100%', height: '260px', marginTop: '16px', display: 'flex', flexDirection: 'column', fontFamily: 'sans-serif', position: 'relative' }}>
@@ -527,6 +529,111 @@ const Dashboard = () => {
       )}
 
       {/* CHAT MODAL */}
+      {selectedBooking && (
+        <div className="details-modal-overlay">
+          <div className="details-modal">
+            <div className="details-modal-header">
+              <div>
+                <h3>Customer Booking Details</h3>
+                <p>{selectedBooking.passenger_name}</p>
+              </div>
+
+              <button className="details-close-btn" onClick={() => setSelectedBooking(null)}>
+                ✕
+              </button>
+            </div>
+
+            <div className="details-agent-info">
+              <p><strong>Passenger:</strong> {selectedBooking.passenger_name}</p>
+              <p><strong>PNR:</strong> {selectedBooking.pnr_number || 'N/A'}</p>
+              <p><strong>Email:</strong> {selectedBooking.passenger_email || 'Not Provided'}</p>
+              <p><strong>Seats Booked:</strong> {selectedBooking.seats_booked || 'Not Provided'}</p>
+              <p><strong>Total Amount:</strong> {selectedBooking.total_amount || 'Not Provided'}</p>
+              <p><strong>Status:</strong> {selectedBooking.status}</p>
+              <p><strong>Date:</strong> {new Date(selectedBooking.booking_date).toLocaleString()}</p>
+            </div>
+
+            {selectedBooking.status === 'Confirmed' ? (
+              <div className="confirmed-box">
+                 This booking is already confirmed.
+              </div>
+            ) : (
+              <div className="confirm-form-box">
+                <h4>Complete Booking Confirmation</h4>
+
+                <div className="confirm-form-grid">
+                  <div className="confirm-form-field">
+                    <label>Passenger Name</label>
+                    <input
+                      type="text"
+                      value={bookingForm.passenger_name}
+                      onChange={(e) => setBookingForm({ ...bookingForm, passenger_name: e.target.value })}
+                      placeholder="Passenger name"
+                    />
+                  </div>
+
+                  <div className="confirm-form-field">
+                    <label>Passenger Email</label>
+                    <input
+                      type="email"
+                      value={bookingForm.passenger_email}
+                      onChange={(e) => setBookingForm({ ...bookingForm, passenger_email: e.target.value })}
+                      placeholder="Passenger email"
+                    />
+                  </div>
+
+                  <div className="confirm-form-field">
+                    <label>PNR Number</label>
+                    <input
+                      type="text"
+                      value={bookingForm.pnr_number}
+                      onChange={(e) => setBookingForm({ ...bookingForm, pnr_number: e.target.value })}
+                      placeholder="PNR number"
+                    />
+                  </div>
+
+                  <div className="confirm-form-field">
+                    <label>Seats Booked</label>
+                    <input
+                      type="number"
+                      value={bookingForm.seats_booked}
+                      onChange={(e) => setBookingForm({ ...bookingForm, seats_booked: e.target.value })}
+                      placeholder="Seats booked"
+                    />
+                  </div>
+
+                  <div className="confirm-form-field">
+                    <label>Total Amount</label>
+                    <input
+                      type="number"
+                      value={bookingForm.total_amount}
+                      onChange={(e) => setBookingForm({ ...bookingForm, total_amount: e.target.value })}
+                      placeholder="Total amount"
+                    />
+                  </div>
+
+                  <div className="confirm-form-field">
+                    <label>Status</label>
+                    <select
+                      value={bookingForm.status}
+                      onChange={(e) => setBookingForm({ ...bookingForm, status: e.target.value })}
+                    >
+                      <option value="Pending">Pending</option>
+                      <option value="Confirmed">Confirmed</option>
+                      <option value="Cancelled">Cancelled</option>
+                    </select>
+                  </div>
+                </div>
+
+                <button className="confirm-booking-btn" onClick={handleUpdateBooking}>
+                  Update & Confirm Booking
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {selectedChatUser && (
         <div className="details-modal-overlay">
           <div className="details-modal">

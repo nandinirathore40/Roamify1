@@ -152,35 +152,35 @@ const confirmLogout = () => {
               style={getNavStyle('/dashboard')}
               onClick={() => navigate('/dashboard')}
             >
-              📊 Dashboard
+               Dashboard
             </button>
 
             <button
               style={getNavStyle('/new-booking')}
               onClick={() => navigate('/new-booking')}
             >
-              🛫 Bookings
+               Bookings
             </button>
 
             <button
               style={getNavStyle('/exchange')}
               onClick={() => navigate('/exchange')}
             >
-              🔄 Exchange
+               Exchange
             </button>
 
             <button
               style={getNavStyle('/future-credit')}
               onClick={() => navigate('/future-credit')}
             >
-              💳 Credit
+               Credit
             </button>
 
             <button
               style={getNavStyle('/refund')}
               onClick={() => navigate('/refund')}
             >
-              💵 Refund
+               Refund
             </button>
 {user?.role === 'manager' && (
   <button
