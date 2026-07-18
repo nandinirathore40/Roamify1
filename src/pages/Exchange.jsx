@@ -21,11 +21,10 @@ const Exchange = () => {
     exchangeReason: ''
   });
 
-  // NEW: Dynamic Flight Routing States
+  // FIXED: multiCitySegments ka schema intermediate logic ke sath align kiya hai
   const [flightType, setFlightType] = useState('one-way');
   const [multiCitySegments, setMultiCitySegments] = useState([
-    { depCity: '', arrCity: '', depDate: '' },
-    { depCity: '', arrCity: '', depDate: '' }
+    { intermediateCity: '', depDate: '' }
   ]);
 
   const originalFare = 0; 
@@ -43,7 +42,7 @@ const Exchange = () => {
     }));
   };
 
-  // Handlers for Multi-City logic
+  // FIXED: Handler for linear intermediate flight paths
   const handleSegmentChange = (index, field, value) => {
     const newSegments = [...multiCitySegments];
     newSegments[index][field] = value;
@@ -51,7 +50,7 @@ const Exchange = () => {
   };
 
   const addSegment = () => {
-    setMultiCitySegments([...multiCitySegments, { depCity: '', arrCity: '', depDate: '' }]);
+    setMultiCitySegments([...multiCitySegments, { intermediateCity: '', depDate: '' }]);
   };
 
   const removeSegment = (index) => {
@@ -60,17 +59,37 @@ const Exchange = () => {
   };
 
   const handleSubmit = async () => {
-    // UPDATED PAYLOAD FOR NEW DJANGO MODEL
+    // STRICT VALIDATION
+    if (!exchangeData.pnrNumber || exchangeData.pnrNumber.trim().length !== 6) {
+      setCustomAlert({ title: "Validation Error", message: "PNR Number must be exactly 6 characters.", type: "error" });
+      return;
+    }
+    if (!exchangeData.newDepartureCity || exchangeData.newDepartureCity.trim() === '') {
+      setCustomAlert({ title: "Validation Error", message: "Departure City 1 (Origin) is required.", type: "error" });
+      return;
+    }
+    if (flightType === 'multi-city') {
+      for (let i = 0; i < multiCitySegments.length; i++) {
+        if (!multiCitySegments[i].intermediateCity || !multiCitySegments[i].depDate) {
+          setCustomAlert({ title: "Validation Error", message: `Please fill all details for Intermediate Route Block #${i + 1}.`, type: "error" });
+          return;
+        }
+      }
+      if (!exchangeData.newArrivalCity || exchangeData.newArrivalCity.trim() === '') {
+        setCustomAlert({ title: "Validation Error", message: "Final Arrival City is required.", type: "error" });
+        return;
+      }
+    }
+
     const payload = {
       old_ticket_number: exchangeData.oldTicketNumber,
       airline_name: exchangeData.airlineName,
       pnr_number: exchangeData.pnrNumber,
       exchange_fee: exchangeData.exchangeFee || 0,
       
-      // Dynamic Routing Params
       trip_type: flightType,
-      new_departure_city: flightType !== 'multi-city' ? exchangeData.newDepartureCity : '',
-      new_arrival_city: flightType !== 'multi-city' ? exchangeData.newArrivalCity : '',
+      new_departure_city: exchangeData.newDepartureCity.trim(),
+      new_arrival_city: exchangeData.newArrivalCity.trim(),
       new_departure_date: flightType !== 'multi-city' && exchangeData.newDepartureDate ? exchangeData.newDepartureDate : null,
       new_return_date: flightType === 'two-way' && exchangeData.newReturnDate ? exchangeData.newReturnDate : null,
       multi_city_route: flightType === 'multi-city' ? JSON.stringify(multiCitySegments) : '',
@@ -121,9 +140,8 @@ const Exchange = () => {
         {/* MAIN FORM CONTAINER */}
         <div style={{ background: '#fff', borderRadius: '16px', padding: '32px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '32px' }}>
           
-          {/* TOP 4 FIELDS (Old Ticket, Airline, PNR, Exchange Fee) */}
+          {/* TOP 4 FIELDS */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-            
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>Old Ticket Number</label>
               <div style={{ background: '#f1f5f9', borderRadius: '10px', border: '1px solid #e2e8f0', cursor: 'text', display: 'flex', alignItems: 'center' }}>
@@ -184,15 +202,13 @@ const Exchange = () => {
                 />
               </div>
             </div>
-
           </div>
 
-          {/* NEW FLIGHT DETAILS SECTION (DYNAMIC) */}
+          {/* DYNAMIC NEW FLIGHT DETAILS */}
           <div>
             <h3 style={{ fontSize: '15px', color: '#0f172a', fontWeight: '700', margin: '0 0 16px 0' }}>New Flight Details</h3>
             
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
-              {/* MASTER SWITCH: TRIP TYPE */}
               <div style={{ gridColumn: 'span 2' }}>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#2563eb', marginBottom: '8px' }}>Trip Type</label>
                 <select 
@@ -206,23 +222,23 @@ const Exchange = () => {
                 </select>
               </div>
 
-              {/* CONDITIONALS BASED ON FLIGHT TYPE */}
+              {/* FIXED: Primary Origin block is always mapped first */}
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>New Departure City 1 (Origin) *</label>
+                <div style={{ background: '#f1f5f9', borderRadius: '10px', border: '1px solid #e2e8f0', cursor: 'text', display: 'flex', alignItems: 'center' }}>
+                  <input 
+                    type="text" 
+                    name="newDepartureCity"
+                    placeholder="Enter City" 
+                    value={exchangeData.newDepartureCity}
+                    onChange={handleInputChange}
+                    style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', padding: '12px 16px', fontSize: '13px', color: '#334155', fontWeight: '500' }} 
+                  />
+                </div>
+              </div>
+
               {flightType !== 'multi-city' && (
                 <>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>New Departure City</label>
-                    <div style={{ background: '#f1f5f9', borderRadius: '10px', border: '1px solid #e2e8f0', cursor: 'text', display: 'flex', alignItems: 'center' }}>
-                      <input 
-                        type="text" 
-                        name="newDepartureCity"
-                        placeholder="Enter City" 
-                        value={exchangeData.newDepartureCity}
-                        onChange={handleInputChange}
-                        style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', padding: '12px 16px', fontSize: '13px', color: '#334155', fontWeight: '500' }} 
-                      />
-                    </div>
-                  </div>
-
                   <div>
                     <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>New Arrival City</label>
                     <div style={{ background: '#f1f5f9', borderRadius: '10px', border: '1px solid #e2e8f0', cursor: 'text', display: 'flex', alignItems: 'center' }}>
@@ -267,44 +283,55 @@ const Exchange = () => {
                 </div>
               )}
 
+              {/* FIXED: Structural layout sequence for Multi-City Exchange */}
               {flightType === 'multi-city' && (
                 <div style={{ gridColumn: 'span 2', background: '#f8fafc', padding: '20px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                  <h4 style={{ marginBottom: '16px', color: '#0f172a', fontSize: '14px' }}>Multi-City Route Details</h4>
+                  <h4 style={{ marginBottom: '16px', color: '#0f172a', fontSize: '14px', fontWeight: 'bold' }}>Multi-City Route Details</h4>
                   
                   {multiCitySegments.map((segment, index) => (
-                    <div key={index} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: '12px', marginBottom: '12px', alignItems: 'end' }}>
+                    <div key={index} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '12px', marginBottom: '12px', alignItems: 'end' }}>
                       <div>
-                        <label style={{ display: 'block', fontSize: '11px', color: '#64748b', marginBottom: '4px', fontWeight: '700' }}>Dep. City {index + 1}</label>
-                        <input type="text" placeholder="e.g. JFK" value={segment.depCity} onChange={(e) => handleSegmentChange(index, 'depCity', e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }} />
+                        <label style={{ display: 'block', fontSize: '11px', color: '#64748b', marginBottom: '4px', fontWeight: '700' }}>Intermediate City {index + 1} *</label>
+                        <input type="text" placeholder="e.g. LAX" value={segment.intermediateCity} onChange={(e) => handleSegmentChange(index, 'intermediateCity', e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }} />
                       </div>
                       <div>
-                        <label style={{ display: 'block', fontSize: '11px', color: '#64748b', marginBottom: '4px', fontWeight: '700' }}>Arr. City {index + 1}</label>
-                        <input type="text" placeholder="e.g. LAX" value={segment.arrCity} onChange={(e) => handleSegmentChange(index, 'arrCity', e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }} />
-                      </div>
-                      <div>
-                        <label style={{ display: 'block', fontSize: '11px', color: '#64748b', marginBottom: '4px', fontWeight: '700' }}>Dep. Date</label>
+                        <label style={{ display: 'block', fontSize: '11px', color: '#64748b', marginBottom: '4px', fontWeight: '700' }}>Dep. Date *</label>
                         <input type="date" value={segment.depDate} onChange={(e) => handleSegmentChange(index, 'depDate', e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontFamily: 'sans-serif' }} />
                       </div>
-                      {multiCitySegments.length > 2 && (
+                      {multiCitySegments.length > 1 && (
                         <button type="button" onClick={() => removeSegment(index)} style={{ padding: '10px 14px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>
                       )}
                     </div>
                   ))}
                   
-                  <button type="button" onClick={addSegment} style={{ marginTop: '10px', padding: '10px 16px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
+                  <button type="button" onClick={addSegment} style={{ marginTop: '10px', marginBottom: '20px', padding: '10px 16px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', display: 'block' }}>
                     + Add Next Flight
                   </button>
+
+                  {/* FINAL BLOCK RENDERING */}
+                  <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '16px' }}>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>New Final Arrival City *</label>
+                    <div style={{ background: '#fff', borderRadius: '10px', border: '1px solid #cbd5e1', width: '50%', display: 'flex', alignItems: 'center' }}>
+                      <input 
+                        type="text" 
+                        name="newArrivalCity"
+                        placeholder="Final Destination e.g. DXB" 
+                        value={exchangeData.newArrivalCity}
+                        onChange={handleInputChange}
+                        style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', padding: '12px 16px', fontSize: '13px', color: '#334155', fontWeight: '500' }} 
+                      />
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
           </div>
 
-          {/* BOTTOM SUMMARY & TOTALS */}
+          {/* FARE SUMMARIES & PENALTIES */}
           <div>
             <h3 style={{ fontSize: '15px', color: '#0f172a', fontWeight: '700', margin: '0 0 16px 0' }}>Exchange Fare & Penalties</h3>
             
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginBottom: '24px' }}>
-              
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>New Ticket Fare</label>
                 <div style={{ background: '#f1f5f9', borderRadius: '10px', border: '1px solid #e2e8f0', cursor: 'text', display: 'flex', alignItems: 'center' }}>
@@ -349,10 +376,8 @@ const Exchange = () => {
                   />
                 </div>
               </div>
-
             </div>
 
-            {/* REASON TEXTAREA BLOCK */}
             <div style={{ marginBottom: '32px' }}>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>Exchange Reason</label>
               <div style={{ background: '#f1f5f9', borderRadius: '12px', border: '1px solid #e2e8f0', cursor: 'text' }}>
@@ -367,7 +392,7 @@ const Exchange = () => {
               </div>
             </div>
 
-            {/* BOTTOM SUMMARY FOOTER BANNER */}
+            {/* BANNER FOOTER */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '20px 24px', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
               <div style={{ display: 'flex', gap: '24px', fontSize: '12px', fontWeight: '700', color: '#64748b' }}>
                 <span>Original Fare: <strong style={{ color: '#0f172a' }}>₹{originalFare}</strong></span>
@@ -387,7 +412,6 @@ const Exchange = () => {
                 </button>
               </div>
             </div>
-
           </div>
 
         </div>
@@ -399,15 +423,9 @@ const Exchange = () => {
             <div className="details-modal-header">
               <div>
                 <h3>{customAlert.title}</h3>
-                <p>
-                  {customAlert.type === 'success'
-                    ? 'Operation Completed'
-                    : 'Attention Required'}
-                </p>
+                <p>{customAlert.type === 'success' ? 'Operation Completed' : 'Attention Required'}</p>
               </div>
-              <button className="details-close-btn" onClick={() => setCustomAlert(null)}>
-                ✕
-              </button>
+              <button className="details-close-btn" onClick={() => setCustomAlert(null)}>✕</button>
             </div>
             <div style={{ padding: '20px', color: '#475569', fontSize: '15px', lineHeight: '1.6' }}>
               {customAlert.message}

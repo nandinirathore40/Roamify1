@@ -25,11 +25,11 @@ const NewBooking = () => {
   const [activeStep, setActiveStep] = useState(savedDraft?.activeStep || 1);
   const [passengers, setPassengers] = useState(savedDraft?.passengers || [{ name: '', dob: '' }]);
 
-  // NEW: Custom Flight Routing States
   const [flightType, setFlightType] = useState(savedDraft?.flightType || 'one-way');
+  
+  // FIXED: multiCitySegments ab linear intermediate blocks hold karega
   const [multiCitySegments, setMultiCitySegments] = useState(savedDraft?.multiCitySegments || [
-    { depCity: '', arrCity: '', depTime: '' },
-    { depCity: '', arrCity: '', depTime: '' } 
+    { intermediateCity: '', depTime: '' }
   ]);
 
   const [formData, setFormData] = useState(savedDraft?.formData || {
@@ -87,7 +87,7 @@ const NewBooking = () => {
     };
   }, [formData.attachments]);
 
-  // NEW: Handlers for Multi-City logic
+  // FIXED: Handler for dynamic intermediate fields
   const handleSegmentChange = (index, field, value) => {
     const newSegments = [...multiCitySegments];
     newSegments[index][field] = value;
@@ -95,7 +95,7 @@ const NewBooking = () => {
   };
 
   const addSegment = () => {
-    setMultiCitySegments([...multiCitySegments, { depCity: '', arrCity: '', depTime: '' }]);
+    setMultiCitySegments([...multiCitySegments, { intermediateCity: '', depTime: '' }]);
   };
 
   const removeSegment = (index) => {
@@ -103,21 +103,25 @@ const NewBooking = () => {
     setMultiCitySegments(newSegments);
   };
 
-  // 🛑 STRICT VALIDATION LOGIC UPDATED
   const validateStep = () => {
     if (activeStep === 1) {
       if (!formData.pnr || formData.pnr.trim() === '') return "PNR Number is required.";
       if (formData.pnr.trim().length !== 6) return "PNR Number must be exactly 6 characters long.";
       
-      // Dynamic validation based on flight type
+      // Departure city first block verification (Common for all flight types)
+      if (!formData.departureCity || formData.departureCity.trim() === '') return "Departure City is required.";
+      
       if (flightType === 'multi-city') {
+        // Intermediate blocks dynamic check
         for (let i = 0; i < multiCitySegments.length; i++) {
-          if (!multiCitySegments[i].depCity || !multiCitySegments[i].arrCity || !multiCitySegments[i].depTime) {
-            return `Please fill all details for Multi-City Route #${i + 1}.`;
+          if (!multiCitySegments[i].intermediateCity || !multiCitySegments[i].depTime) {
+            return `Please fill all details for Intermediate Route Block #${i + 1}.`;
           }
         }
+        // Final block verification
+        if (!formData.arrivalCity || formData.arrivalCity.trim() === '') return "Final Arrival City is required.";
       } else {
-        if (!formData.departureCity || formData.departureCity.trim() === '' || !formData.arrivalCity || formData.arrivalCity.trim() === '') return "Departure and Arrival cities are required.";
+        if (!formData.arrivalCity || formData.arrivalCity.trim() === '') return "Arrival city is required.";
         if (!formData.departureTime || formData.departureTime.trim() === '') return "Departure Date & Time is required.";
         if (flightType === 'two-way' && (!formData.returnTime || formData.returnTime.trim() === '')) return "Return Date & Time is required for Round Trips.";
       }
@@ -229,7 +233,6 @@ const NewBooking = () => {
     const combinedDobs = passengers.map(p => p.dob).join(', ');
     const formattedExpiry = formData.expiry ? formData.expiry : "12/28";
     
-    // UPDATED PAYLOAD FOR DJANGO
     const payload = {
       agent: user?.id,
       pnr_number: formData.pnr.trim().toUpperCase(),
@@ -247,10 +250,9 @@ const NewBooking = () => {
       billing_address: formData.billingAddress,
       total_amount: String(totalAmount),
       
-      // New custom route parameters
       trip_type: flightType,
-      departure_city: flightType !== 'multi-city' ? formData.departureCity : '',
-      arrival_city: flightType !== 'multi-city' ? formData.arrivalCity : '',
+      departure_city: formData.departureCity.trim(),
+      arrival_city: formData.arrivalCity.trim(),
       departure_time: flightType !== 'multi-city' && formData.departureTime ? formData.departureTime.replace('T', ' ') : '',
       return_time: flightType === 'two-way' && formData.returnTime ? formData.returnTime.replace('T', ' ') : '',
       multi_city_route: flightType === 'multi-city' ? JSON.stringify(multiCitySegments) : ''
@@ -378,7 +380,7 @@ const NewBooking = () => {
                 <h3 className="step-title" style={{ color: '#1e293b', fontWeight: 'bold', marginBottom: '24px' }}>Basic Details</h3>
                 <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
                   
-                  {/* PNR - Moved to top for consistency */}
+                  {/* PNR */}
                   <div className="input-group">
                     <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>PNR Number *</label>
                     <input 
@@ -395,7 +397,7 @@ const NewBooking = () => {
                     />
                   </div>
 
-                  {/* FLIGHT TYPE MASTER SWITCH */}
+                  {/* TRIP TYPE MASTER SWITCH */}
                   <div className="input-group">
                     <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#2563eb', marginBottom: '8px' }}>Trip Type *</label>
                     <select 
@@ -424,14 +426,15 @@ const NewBooking = () => {
                     </select>
                   </div>
 
-                  {/* CONDITIONALS BASED ON FLIGHT TYPE */}
-                  
+                  {/* FIXED: Departure City Block is ALWAYS shown first, acting as Main Origin */}
+                  <div className="input-group">
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Departure City 1 (Origin) *</label>
+                    <input type="text" name="departureCity" placeholder="Bozeman, MT (BZN)" value={formData.departureCity} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                  </div>
+
+                  {/* Standard One-way / Round-trip Fields */}
                   {flightType !== 'multi-city' && (
                     <>
-                      <div className="input-group">
-                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Departure City *</label>
-                        <input type="text" name="departureCity" placeholder="Bozeman, MT (BZN)" value={formData.departureCity} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
-                      </div>
                       <div className="input-group">
                         <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Arrival City *</label>
                         <input type="text" name="arrivalCity" placeholder=" New York, NY (JFK)" value={formData.arrivalCity} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
@@ -450,33 +453,38 @@ const NewBooking = () => {
                     </div>
                   )}
 
+                  {/* FIXED: Multi-City Structural flow setup */}
                   {flightType === 'multi-city' && (
                     <div className="input-group full-width" style={{ gridColumn: 'span 2', background: '#f8fafc', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                       <h4 style={{ marginBottom: '16px', color: '#0f172a' }}>Multi-City Route Details</h4>
                       
+                      {/* DYNAMIC INTERMEDIATE CITIES ONLY */}
                       {multiCitySegments.map((segment, index) => (
-                        <div key={index} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: '12px', marginBottom: '12px', alignItems: 'end' }}>
+                        <div key={index} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '12px', marginBottom: '12px', alignItems: 'end' }}>
                           <div>
-                            <label style={{ display: 'block', fontSize: '11px', color: '#64748b', marginBottom: '4px' }}>Dep. City {index + 1}</label>
-                            <input type="text" placeholder="e.g. JFK" value={segment.depCity} onChange={(e) => handleSegmentChange(index, 'depCity', e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
+                            <label style={{ display: 'block', fontSize: '11px', color: '#64748b', marginBottom: '4px' }}>Intermediate City {index + 1} *</label>
+                            <input type="text" placeholder="e.g. LAX" value={segment.intermediateCity} onChange={(e) => handleSegmentChange(index, 'intermediateCity', e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
                           </div>
                           <div>
-                            <label style={{ display: 'block', fontSize: '11px', color: '#64748b', marginBottom: '4px' }}>Arr. City {index + 1}</label>
-                            <input type="text" placeholder="e.g. LAX" value={segment.arrCity} onChange={(e) => handleSegmentChange(index, 'arrCity', e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
-                          </div>
-                          <div>
-                            <label style={{ display: 'block', fontSize: '11px', color: '#64748b', marginBottom: '4px' }}>Dep. Time</label>
+                            <label style={{ display: 'block', fontSize: '11px', color: '#64748b', marginBottom: '4px' }}>Departure Time *</label>
                             <input type="datetime-local" value={segment.depTime} onChange={(e) => handleSegmentChange(index, 'depTime', e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} />
                           </div>
-                          {multiCitySegments.length > 2 && (
+                          {multiCitySegments.length > 1 && (
                             <button type="button" onClick={() => removeSegment(index)} style={{ padding: '10px 14px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>✕</button>
                           )}
                         </div>
                       ))}
                       
-                      <button type="button" onClick={addSegment} style={{ marginTop: '10px', padding: '8px 16px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>
+                      {/* ADD FLIGHT BUTTON - Placed right below intermediate steps */}
+                      <button type="button" onClick={addSegment} style={{ marginTop: '10px', marginBottom: '20px', padding: '8px 16px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', display: 'block' }}>
                         + Add Next Flight
                       </button>
+
+                      {/* FINAL STATIC BLOCK: TERMINATION ARRIVAL CITY */}
+                      <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '16px' }}>
+                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Final Arrival City *</label>
+                        <input type="text" name="arrivalCity" placeholder="Final Destination e.g. DXB" value={formData.arrivalCity} onChange={handleChange} style={{ width: '50%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
+                      </div>
                     </div>
                   )}
 
