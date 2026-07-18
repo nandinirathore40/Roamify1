@@ -127,6 +127,12 @@
   font-size: 13px;
   font-weight: 600;
   color: #374151;
+  
+  /* 🚀 BLURRY LOOK AUR SHADOW EFFECT KO KHATAM KARNE KE LIYE ACCURATE TEXT-SMOOTHING */
+  text-shadow: none !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: 0.2px; /* Text elements ko clean spacing dene ke liye */
 }
 
 .input-group input, 

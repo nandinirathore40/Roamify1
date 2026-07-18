@@ -23,11 +23,10 @@ const NewBooking = () => {
   const savedDraft = getSavedDraft();
   
   const [activeStep, setActiveStep] = useState(savedDraft?.activeStep || 1);
-  const [passengers, setPassengers] = useState(savedDraft?.passengers || [{ name: '', dob: '' }]);
-
+  const [passengers, setPassengers] = useState(savedDraft?.passengers || [{ name: '', dob: '', gender: '' }]);
   const [flightType, setFlightType] = useState(savedDraft?.flightType || 'one-way');
   
-  // FIXED: multiCitySegments ab linear intermediate blocks hold karega
+  // FIXED: multiCitySegments holds intermediate steps cleanly
   const [multiCitySegments, setMultiCitySegments] = useState(savedDraft?.multiCitySegments || [
     { intermediateCity: '', depTime: '' }
   ]);
@@ -47,10 +46,12 @@ const NewBooking = () => {
     cvv: '',
     currency: '',
     email: '',
-    contact: '',
+    countryCode: '+1',
+    phoneNumber: '',
     cardHolderName: '',
     billingAddress: '',
     subjectLine: '',
+    passportNumber: '',
     attachments: []
   });
 
@@ -65,6 +66,16 @@ const NewBooking = () => {
     borderRadius: "16px",
     padding: "32px"
   };
+
+  const totalAmount = Number(formData.firstCharge || 0) + Number(formData.secondCharge || 0);
+
+  const steps = [
+    { id: 1, label: 'Basic Details', icon: '📄' },
+    { id: 2, label: 'Card Details', icon: '💳' },
+    { id: 3, label: 'Customer Info', icon: '👤' },
+    { id: 4, label: 'Passenger', icon: '👥' },
+    { id: 5, label: 'Documents', icon: '📎' },
+  ];
 
   useEffect(() => {
     const draftToSave = {
@@ -87,19 +98,19 @@ const NewBooking = () => {
     };
   }, [formData.attachments]);
 
-  // FIXED: Handler for dynamic intermediate fields
-  const handleSegmentChange = (index, field, value) => {
-    const newSegments = [...multiCitySegments];
-    newSegments[index][field] = value;
-    setMultiCitySegments(newSegments);
-  };
-
+  // FIXED: Added missing handlers to handle active segments manipulation safely
   const addSegment = () => {
     setMultiCitySegments([...multiCitySegments, { intermediateCity: '', depTime: '' }]);
   };
 
   const removeSegment = (index) => {
-    const newSegments = multiCitySegments.filter((_, i) => i !== index);
+    if (multiCitySegments.length === 1) return;
+    setMultiCitySegments(multiCitySegments.filter((_, i) => i !== index));
+  };
+
+  const handleSegmentChange = (index, field, value) => {
+    const newSegments = [...multiCitySegments];
+    newSegments[index][field] = value;
     setMultiCitySegments(newSegments);
   };
 
@@ -107,18 +118,14 @@ const NewBooking = () => {
     if (activeStep === 1) {
       if (!formData.pnr || formData.pnr.trim() === '') return "PNR Number is required.";
       if (formData.pnr.trim().length !== 6) return "PNR Number must be exactly 6 characters long.";
-      
-      // Departure city first block verification (Common for all flight types)
       if (!formData.departureCity || formData.departureCity.trim() === '') return "Departure City is required.";
       
       if (flightType === 'multi-city') {
-        // Intermediate blocks dynamic check
         for (let i = 0; i < multiCitySegments.length; i++) {
           if (!multiCitySegments[i].intermediateCity || !multiCitySegments[i].depTime) {
             return `Please fill all details for Intermediate Route Block #${i + 1}.`;
           }
         }
-        // Final block verification
         if (!formData.arrivalCity || formData.arrivalCity.trim() === '') return "Final Arrival City is required.";
       } else {
         if (!formData.arrivalCity || formData.arrivalCity.trim() === '') return "Arrival city is required.";
@@ -135,12 +142,14 @@ const NewBooking = () => {
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) return "Please enter a valid customer email address.";
     }
     if (activeStep === 3) {
+      if (!formData.passportNumber || formData.passportNumber.trim() === '') return "Passport Number is required.";
       if (!formData.billingAddress || formData.billingAddress.trim() === '') return "Billing Address is required.";
     }
     if (activeStep === 4) {
       for (let i = 0; i < passengers.length; i++) {
         if (!passengers[i].name || passengers[i].name.trim() === '') return `Passenger #${i + 1} Name cannot be empty.`;
         if (!passengers[i].dob || passengers[i].dob.trim() === '') return `Passenger #${i + 1} Date of Birth is required.`;
+        if (!passengers[i].gender || passengers[i].gender === '') return `Passenger #${i + 1} Gender is required.`;
       }
     }
     return null; 
@@ -154,6 +163,15 @@ const NewBooking = () => {
       return;
     }
     setActiveStep(prev => prev + 1);
+  };
+
+  const handleBack = (e) => {
+    if (e) e.preventDefault();
+    if (activeStep > 1) {
+      setActiveStep((prev) => prev - 1);
+    } else {
+      navigate('/dashboard');
+    }
   };
 
   const handlePaste = (e) => {
@@ -205,7 +223,7 @@ const NewBooking = () => {
   };
 
   const addPassengerField = () => {
-    setPassengers([...passengers, { name: '', dob: '' }]);
+    setPassengers([...passengers, { name: '', dob: '', gender: '' }]);
   };
 
   const removePassengerField = (index) => {
@@ -221,6 +239,7 @@ const NewBooking = () => {
     setCustomAlert({ title, message, type, onClose });
   };
 
+  // FIXED: Completely cleaned up duplicate variables declarations and combined structures cleanly
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
     const errorMessage = validateStep();
@@ -231,14 +250,19 @@ const NewBooking = () => {
 
     const combinedNames = passengers.map(p => p.name.trim()).join(', ');
     const combinedDobs = passengers.map(p => p.dob).join(', ');
+    const combinedGenders = passengers.map(p => p.gender || 'Not Specified').join(', ');
     const formattedExpiry = formData.expiry ? formData.expiry : "12/28";
+    const completeContact = `${formData.countryCode || '+1'} ${formData.phoneNumber || ''}`.trim();
     
     const payload = {
       agent: user?.id,
       pnr_number: formData.pnr.trim().toUpperCase(),
+      passport_number: formData.passportNumber ? formData.passportNumber.trim().toUpperCase() : '',
       passenger_name: combinedNames,
       passenger_dob: combinedDobs,
+      passenger_gender: combinedGenders,
       passenger_email: formData.email.trim().toLowerCase(),
+      contact_number: completeContact,
       status: 'Pending',
       seats_booked: passengers.length,
       airline_name: formData.airlineName || "Roamify Carrier Services",
@@ -249,7 +273,6 @@ const NewBooking = () => {
       expiry_date: formattedExpiry,
       billing_address: formData.billingAddress,
       total_amount: String(totalAmount),
-      
       trip_type: flightType,
       departure_city: formData.departureCity.trim(),
       arrival_city: formData.arrivalCity.trim(),
@@ -301,25 +324,6 @@ const NewBooking = () => {
       } else {
         showAlert("Pipeline Error", error.message || "Could not reach the booking server.", "error");
       }
-    }
-  };
-
-  const totalAmount = Number(formData.firstCharge || 0) + Number(formData.secondCharge || 0);
-
-  const steps = [
-    { id: 1, label: 'Basic Details', icon: '📄' },
-    { id: 2, label: 'Card Details', icon: '💳' },
-    { id: 3, label: 'Customer Info', icon: '👤' },
-    { id: 4, label: 'Passenger', icon: '👥' },
-    { id: 5, label: 'Documents', icon: '📎' },
-  ];
-
-  const handleBack = (e) => {
-    if (e) e.preventDefault();
-    if (activeStep > 1) {
-      setActiveStep((prev) => prev - 1);
-    } else {
-      navigate('/dashboard');
     }
   };
 
@@ -380,7 +384,6 @@ const NewBooking = () => {
                 <h3 className="step-title" style={{ color: '#1e293b', fontWeight: 'bold', marginBottom: '24px' }}>Basic Details</h3>
                 <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
                   
-                  {/* PNR */}
                   <div className="input-group">
                     <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>PNR Number *</label>
                     <input 
@@ -397,7 +400,6 @@ const NewBooking = () => {
                     />
                   </div>
 
-                  {/* TRIP TYPE MASTER SWITCH */}
                   <div className="input-group">
                     <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#2563eb', marginBottom: '8px' }}>Trip Type *</label>
                     <select 
@@ -426,13 +428,11 @@ const NewBooking = () => {
                     </select>
                   </div>
 
-                  {/* FIXED: Departure City Block is ALWAYS shown first, acting as Main Origin */}
                   <div className="input-group">
                     <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Departure City 1 (Origin) *</label>
                     <input type="text" name="departureCity" placeholder="Bozeman, MT (BZN)" value={formData.departureCity} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
                   </div>
 
-                  {/* Standard One-way / Round-trip Fields */}
                   {flightType !== 'multi-city' && (
                     <>
                       <div className="input-group">
@@ -453,12 +453,10 @@ const NewBooking = () => {
                     </div>
                   )}
 
-                  {/* FIXED: Multi-City Structural flow setup */}
                   {flightType === 'multi-city' && (
                     <div className="input-group full-width" style={{ gridColumn: 'span 2', background: '#f8fafc', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                       <h4 style={{ marginBottom: '16px', color: '#0f172a' }}>Multi-City Route Details</h4>
                       
-                      {/* DYNAMIC INTERMEDIATE CITIES ONLY */}
                       {multiCitySegments.map((segment, index) => (
                         <div key={index} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '12px', marginBottom: '12px', alignItems: 'end' }}>
                           <div>
@@ -475,12 +473,10 @@ const NewBooking = () => {
                         </div>
                       ))}
                       
-                      {/* ADD FLIGHT BUTTON - Placed right below intermediate steps */}
                       <button type="button" onClick={addSegment} style={{ marginTop: '10px', marginBottom: '20px', padding: '8px 16px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', display: 'block' }}>
                         + Add Next Flight
                       </button>
 
-                      {/* FINAL STATIC BLOCK: TERMINATION ARRIVAL CITY */}
                       <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '16px' }}>
                         <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Final Arrival City *</label>
                         <input type="text" name="arrivalCity" placeholder="Final Destination e.g. DXB" value={formData.arrivalCity} onChange={handleChange} style={{ width: '50%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
@@ -488,7 +484,6 @@ const NewBooking = () => {
                     </div>
                   )}
 
-                  {/* PRICING */}
                   <div className="input-group">
                     <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>First Charge (Base)</label>
                     <input type="number" name="firstCharge" placeholder="e.g., 500" value={formData.firstCharge} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
@@ -513,7 +508,7 @@ const NewBooking = () => {
                 <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
                   <div className="input-group">
                     <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Card Number *</label>
-                    <input type="text" name="cardNumber" placeholder="0000 0000 0000 0000" value={formData.cardNumber} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                    <input type="password" name="cardNumber" placeholder="0000 0000 0000 0000" maxLength={16} value={formData.cardNumber} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
                   </div>
                   <div className="input-group">
                     <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Card Holder Name *</label>
@@ -525,7 +520,7 @@ const NewBooking = () => {
                   </div>
                   <div className="input-group">
                     <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>CVV *</label>
-                    <input type="password" name="cvv" placeholder="•••" value={formData.cvv} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                    <input type="password" name="cvv" placeholder="•••"  maxLength={3} value={formData.cvv} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
                   </div>
                   <div className="input-group">
                     <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Currency</label>
@@ -541,9 +536,74 @@ const NewBooking = () => {
                     <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Email Address *</label>
                     <input type="email" name="email" placeholder="customer@example.com" value={formData.email} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
                   </div>
-                  <div className="input-group">
+                  <div className="input-group" style={{ gridColumn: 'span 2' }}>
                     <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Contact Number</label>
-                    <input type="text" name="contact" placeholder="+1 234 567 8900" value={formData.contact} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <select
+                        name="countryCode"
+                        value={formData.countryCode || '+1'}
+                        onChange={handleChange}
+                        style={{
+                          padding: '12px',
+                          borderRadius: '8px',
+                          border: '1px solid #e2e8f0',
+                          backgroundColor: '#fff',
+                          fontSize: '14px',
+                          color: '#1e293b',
+                          width: '100px',
+                          outline: 'none'
+                        }}
+                      >
+                        <option value="+1">🇺🇸 +1 (US)</option>
+                        <option value="+1-CA">🇨🇦 +1 (CA)</option>
+                        <option value="+52">🇲🇽 +52 (MX)</option>
+                        <option value="+91">🇮🇳 +91 (IN)</option>
+                        <option value="+65">🇸🇬 +65 (SG)</option>
+                        <option value="+86">🇨🇳 +86 (CN)</option>
+                        <option value="+81">🇯🇵 +81 (JP)</option>
+                        <option value="+82">🇰🇷 +82 (KR)</option>
+                        <option value="+60">🇲🇾 +60 (MY)</option>
+                        <option value="+66">🇹🇭 +66 (TH)</option>
+                        <option value="+92">🇵🇰 +92 (PK)</option>
+                        <option value="+880">🇧🇩 +880 (BD)</option>
+                        <option value="+971">🇦🇪 +971 (UAE)</option>
+                        <option value="+966">🇸🇦 +966 (KSA)</option>
+                        <option value="+965">🇰ว้ +965 (KW)</option>
+                        <option value="+974">🇶🇦 +974 (QA)</option>
+                        <option value="+968">🇴🇲 +968 (OM)</option>
+                        <option value="+44">🇬🇧 +44 (UK)</option>
+                        <option value="+33">🇫🇷 +33 (FR)</option>
+                        <option value="+49">🇩🇪 +49 (DE)</option>
+                        <option value="+39">🇮🇹 +39 (IT)</option>
+                        <option value="+34">🇪🇸 +34 (ES)</option>
+                        <option value="+7">🇷🇺 +7 (RU)</option>
+                        <option value="+61">🇦🇺 +61 (AU)</option>
+                        <option value="+64">🇳🇿 +64 (NZ)</option>
+                        <option value="+27">🇿🇦 +27 (ZA)</option>
+                      </select>
+
+                      <input
+                        type="text"
+                        name="phoneNumber"
+                        placeholder="1234567890"
+                        maxLength={10}
+                        value={formData.phoneNumber || ''}
+                        onChange={(e) => {
+                          const re = /^[0-9\b]+$/;
+                          if (e.target.value === '' || re.test(e.target.value)) {
+                            handleChange(e);
+                          }
+                        }}
+                        style={{
+                          flex: 1,
+                          padding: '12px',
+                          borderRadius: '8px',
+                          border: '1px solid #e2e8f0',
+                          fontSize: '14px',
+                          outline: 'none'
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -558,6 +618,23 @@ const NewBooking = () => {
                     <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Subject Line</label>
                     <input type="text" name="subjectLine" placeholder=" Flight Booking" value={formData.subjectLine} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
                   </div>
+
+                  <div className="input-group">
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Passport Number *</label>
+                    <input 
+                      type="text" 
+                      name="passportNumber" 
+                      placeholder="A1234567" 
+                      maxLength={9}
+                      value={formData.passportNumber || ''} 
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+                        setFormData(prev => ({ ...prev, passportNumber: val }));
+                      }} 
+                      style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', textTransform: 'uppercase', fontWeight: 'bold' }} 
+                    />
+                  </div>
+
                   <div className="input-group full-width" style={{ gridColumn: 'span 2' }}>
                     <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Billing Address *</label>
                     <textarea name="billingAddress" rows="3" placeholder="Full Address" value={formData.billingAddress} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}></textarea>
@@ -570,21 +647,38 @@ const NewBooking = () => {
             {activeStep === 4 && (
               <div className="step-content">
                 <h3 className="step-title" style={{ color: '#1e293b', fontWeight: 'bold', marginBottom: '24px' }}>Passenger Info</h3>
+                
                 {passengers.map((passenger, index) => (
-                  <div key={index} className="passenger-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 50px', gap: '20px', marginBottom: '15px', alignItems: 'end', padding: '10px', background: 'rgba(0,0,0,0.02)', borderRadius: '8px' }}>
+                  <div key={index} className="passenger-row" style={{ display: 'grid', gridTemplateColumns: '2.5fr 1.5fr 1fr 50px', gap: '16px', marginBottom: '20px', alignItems: 'end', padding: '16px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
+                    
                     <div className="input-group">
-                      <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Passenger Name #{index + 1} *</label>
-                      <input type="text" name="name" placeholder="Full Legal Name (Match Passport)" value={passenger.name} onChange={(e) => handlePassengerChange(index, e)} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                      <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Passenger #{index + 1} Name *</label>
+                      <input type="text" name="name" placeholder="Full Legal Name" value={passenger.name} onChange={(e) => handlePassengerChange(index, e)} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px' }} />
                     </div>
+
                     <div className="input-group">
                       <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Date of Birth *</label>
-                      <input type="date" name="dob" value={passenger.dob} onChange={(e) => handlePassengerChange(index, e)} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                      <input type="date" name="dob" value={passenger.dob} onChange={(e) => handlePassengerChange(index, e)} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px' }} />
                     </div>
-                    <button type="button" onClick={() => removePassengerField(index)} style={{background: '#ef4444', color: 'white', border: 'none', padding: '12px', borderRadius: '8px', cursor: 'pointer'}}>✕</button>
+
+                    <div className="input-group">
+                      <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Gender *</label>
+                      <select name="gender" value={passenger.gender || ''} onChange={(e) => handlePassengerChange(index, e)} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', fontSize: '14px' }}>
+                        <option value="">Select</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+
+                    {passengers.length > 1 && (
+                      <button type="button" onClick={() => removePassengerField(index)} style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', height: '46px', width: '100%' }}>✕</button>
+                    )}
                   </div>
                 ))}
-                <button className="add-passenger-btn" type="button" onClick={addPassengerField} style={{marginTop: '10px', padding: '10px 20px', background: '#2563eb', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500'}}>
-                  + Append Passenger Row
+
+                <button type="button" onClick={addPassengerField} style={{ marginTop: '10px', padding: '12px 24px', background: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' }}>
+                  + Add Another Passenger
                 </button>
               </div>
             )}

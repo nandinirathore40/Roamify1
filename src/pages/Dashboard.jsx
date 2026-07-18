@@ -7,6 +7,8 @@ import { useNavigate } from 'react-router-dom';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://flight-backend-auda.onrender.com';
 
+import API from '../api'
+
 const RevenueOverviewChart = () => {
   return (
     <div style={{ width: '100%', height: '260px', marginTop: '16px', display: 'flex', flexDirection: 'column', fontFamily: 'sans-serif', position: 'relative' }}>
@@ -186,6 +188,17 @@ const Dashboard = () => {
   const [creditsCount, setCreditsCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [selectedAgent, setSelectedAgent] = useState(null)
+  
+  const [selectedBooking, setSelectedBooking] = useState(null)
+  const [bookingForm, setBookingForm] = useState({
+    passenger_name: '',
+    passenger_email: '',
+    pnr_number: '',
+    seats_booked: 0,
+    total_amount: 0,
+    status: 'Pending'
+  })
+
   const [users, setUsers] = useState([])
   const [messages, setMessages] = useState([])
   const [selectedChatUser, setSelectedChatUser] = useState(null)
@@ -246,6 +259,33 @@ const Dashboard = () => {
       fetchMessages()
     }
   }, [user])
+
+  const handleSelectBookingClick = (booking) => {
+    setSelectedBooking(booking);
+    setBookingForm({
+      passenger_name: booking.passenger_name || '',
+      passenger_email: booking.passenger_email || '',
+      pnr_number: booking.pnr_number || '',
+      seats_booked: booking.seats_booked || 0,
+      total_amount: booking.total_amount || 0,
+      status: booking.status || 'Pending'
+    });
+  };
+
+  const handleUpdateBooking = async () => {
+    if (!selectedBooking) return;
+    try {
+      const response = await axios.put(`${API_BASE_URL}/api/bookings/${selectedBooking.id}/`, bookingForm);
+      if (response.status === 200 || response.status === 201) {
+        alert('Booking successfully updated!');
+        setSelectedBooking(null);
+        fetchDashboardData();
+      }
+    } catch (error) {
+      console.error('Failed operational data update:', error.response?.data || error.message);
+      alert('Error updating custom fields.');
+    }
+  };
 
   const sendMessage = async () => {
     if (!selectedChatUser || !newMessage.trim()) return
@@ -454,7 +494,7 @@ const Dashboard = () => {
                               </span>
                             </td>
                             <td style={{ padding: '16px' }}>
-                              <button className="table-action-btn" onClick={() => navigate(`/bookings/${b.id}/edit`)}>
+                              <button className="table-action-btn" onClick={() => handleSelectBookingClick(b)}>
                                 View Details
                               </button>
                             </td>
@@ -512,7 +552,10 @@ const Dashboard = () => {
                     <button
                       className="table-action-btn"
                       style={{ marginTop: '10px' }}
-                      onClick={() => navigate(`/bookings/${t.id}/edit`)}
+                      onClick={() => {
+                        setSelectedAgent(null);
+                        handleSelectBookingClick(t);
+                      }}
                     >
                       View & Edit Details
                     </button>
@@ -526,7 +569,122 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* CHAT MODAL */}
+      {/* CUSTOMER DETAILS & EDIT MODAL */}
+      {selectedBooking && (
+        <div className="details-modal-overlay">
+          <div className="details-modal">
+            <div className="details-modal-header">
+              <div>
+                <h3>Customer Booking Details</h3>
+                <p>{selectedBooking.passenger_name}</p>
+              </div>
+
+              <button className="details-close-btn" onClick={() => setSelectedBooking(null)}>
+                ✕
+              </button>
+            </div>
+
+            <div className="details-agent-info">
+              <p><strong>Passenger:</strong> {selectedBooking.passenger_name}</p>
+              <p><strong>PNR:</strong> {selectedBooking.pnr_number || 'N/A'}</p>
+              <p><strong>Email:</strong> {selectedBooking.passenger_email || 'Not Provided'}</p>
+              <p><strong>Seats Booked:</strong> {selectedBooking.seats_booked || 'Not Provided'}</p>
+              <p><strong>Total Amount:</strong> {selectedBooking.total_amount || 'Not Provided'}</p>
+              <p><strong>Status:</strong> {selectedBooking.status}</p>
+              <p><strong>Date:</strong> {new Date(selectedBooking.booking_date).toLocaleString()}</p>
+            </div>
+
+            {selectedBooking.status === 'Confirmed' ? (
+              <div className="confirmed-box" style={{ background: '#dcfce7', color: '#166534', padding: '12px', borderRadius: '8px', fontWeight: 'bold', marginTop: '14px' }}>
+                 This booking is already confirmed.
+              </div>
+            ) : (
+              <div className="confirm-form-box" style={{ marginTop: '20px', borderTop: '1px solid #e2e8f0', paddingTop: '16px' }}>
+                <h4 style={{ marginBottom: '12px', color: '#0f172a' }}>Complete Booking Confirmation</h4>
+
+                <div className="confirm-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '16px' }}>
+                  <div className="confirm-form-field">
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#475569', marginBottom: '4px' }}>Passenger Name</label>
+                    <input
+                      type="text"
+                      value={bookingForm.passenger_name}
+                      onChange={(e) => setBookingForm({ ...bookingForm, passenger_name: e.target.value })}
+                      style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '6px' }}
+                      placeholder="Passenger name"
+                    />
+                  </div>
+
+                  <div className="confirm-form-field">
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#475569', marginBottom: '4px' }}>Passenger Email</label>
+                    <input
+                      type="email"
+                      value={bookingForm.passenger_email}
+                      onChange={(e) => setBookingForm({ ...bookingForm, passenger_email: e.target.value })}
+                      style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '6px' }}
+                      placeholder="Passenger email"
+                    />
+                  </div>
+
+                  <div className="confirm-form-field">
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#475569', marginBottom: '4px' }}>PNR Number</label>
+                    <input
+                      type="text"
+                      value={bookingForm.pnr_number}
+                      onChange={(e) => setBookingForm({ ...bookingForm, pnr_number: e.target.value })}
+                      style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '6px' }}
+                      placeholder="PNR number"
+                    />
+                  </div>
+
+                  <div className="confirm-form-field">
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#475569', marginBottom: '4px' }}>Seats Booked</label>
+                    <input
+                      type="number"
+                      value={bookingForm.seats_booked}
+                      onChange={(e) => setBookingForm({ ...bookingForm, seats_booked: e.target.value })}
+                      style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '6px' }}
+                      placeholder="Seats booked"
+                    />
+                  </div>
+
+                  <div className="confirm-form-field">
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#475569', marginBottom: '4px' }}>Total Amount</label>
+                    <input
+                      type="number"
+                      value={bookingForm.total_amount}
+                      onChange={(e) => setBookingForm({ ...bookingForm, total_amount: e.target.value })}
+                      style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '6px' }}
+                      placeholder="Total amount"
+                    />
+                  </div>
+
+                  <div className="confirm-form-field">
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#475569', marginBottom: '4px' }}>Status</label>
+                    <select
+                      value={bookingForm.status}
+                      onChange={(e) => setBookingForm({ ...bookingForm, status: e.target.value })}
+                      style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '6px', background: '#fff' }}
+                    >
+                      <option value="Pending">Pending</option>
+                      <option value="Confirmed">Confirmed</option>
+                      <option value="Cancelled">Cancelled</option>
+                    </select>
+                  </div>
+                </div>
+
+                <button 
+                  className="confirm-booking-btn" 
+                  onClick={handleUpdateBooking}
+                  style={{ background: '#10b981', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
+                >
+                  Update & Confirm Booking
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {selectedChatUser && (
         <div className="details-modal-overlay">
           <div className="details-modal">

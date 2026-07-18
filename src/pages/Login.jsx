@@ -17,6 +17,7 @@ const Login = () => {
 
   const { login } = useAuth()
   const navigate = useNavigate()
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -30,7 +31,7 @@ const Login = () => {
     setLoading(true)
 
     try {
-      const response = await axios.post(`${import.meta.env.VITE_API_BASE_URL || 'https://flight-backend-auda.onrender.com'}/api/login/`, {
+      const response = await axios.post(`${apiBaseUrl}/api/login/`, {
         email,
         password,
         role,
